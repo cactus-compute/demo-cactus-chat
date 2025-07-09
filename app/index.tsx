@@ -14,7 +14,7 @@ import { logChatCompletionDiagnostics } from '@/services/diagnostics';
 import { MessageInput } from '@/components/ui/chat/MessageInput';
 import { Model } from '@/services/models';
 import { VoiceModeOverlay } from '@/components/VoiceModeScreen';
-import { streamLlamaCompletion, generateUniqueId } from '@/services/chat/llama-local';
+import { streamLlamaCompletion, generateUniqueId, loadConversationIntoContext, initializeConversationContext } from '@/services/chat/llama-local';
 
 
 export default function ChatScreen() {
@@ -22,6 +22,7 @@ export default function ChatScreen() {
   const [currentAIMessage, setCurrentAIMessage] = useState<string>('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [voiceMode, setVoiceMode] = useState(false);
+  const [isConversationLoaded, setIsConversationLoaded] = useState(false);
   
   const scrollViewRef = useRef<any>(null);
   const { 
@@ -40,16 +41,30 @@ export default function ChatScreen() {
 
   useEffect(() => {
     const loadConversationState = async () => {
+      if (!cactusContext.context) return;
+      
       const conversation = await getConversation(conversationId);
       if (conversation) {
         setMessages(conversation.messages);
+        // Load the conversation into the context
+        await loadConversationIntoContext(cactusContext.context, conversation.messages, voiceMode);
       } else {
         setMessages([]);
+        // Initialize new conversation context
+        await initializeConversationContext(cactusContext.context, voiceMode);
         saveCurrentConversation([]);
       }
+      setIsConversationLoaded(true);
     };
     
-    loadConversationState();
+    if (cactusContext.context && !isConversationLoaded) {
+      loadConversationState();
+    }
+  }, [conversationId, cactusContext.context, voiceMode]);
+
+  // Reset conversation loaded state when conversation changes
+  useEffect(() => {
+    setIsConversationLoaded(false);
   }, [conversationId]);
 
   // Save conversation when messages change
@@ -126,7 +141,7 @@ export default function ChatScreen() {
   }
 
   const sendMessage = async (inputText: string) => {
-    if (!inputText.trim() || isStreaming) return;
+    if (!inputText.trim() || isStreaming || !isConversationLoaded) return;
     if (!selectedModel) return;
 
     const userMessage: Message = createUserMessage(inputText, selectedModel);
@@ -137,7 +152,8 @@ export default function ChatScreen() {
     
     setIsStreaming(true);
     try {
-      // await sendChatMessage(
+      // In v0.1.4, pass only the updated messages array which includes the new user message
+      // The context will handle the latest message from this array
       await streamLlamaCompletion(
         cactusContext.context,
         updatedMessages,
@@ -147,6 +163,7 @@ export default function ChatScreen() {
         true,
         tokenGenerationLimit,
         isReasoningEnabled,
+        voiceMode
       );      
     } catch (error) {
       console.error('Error in chat:', error);

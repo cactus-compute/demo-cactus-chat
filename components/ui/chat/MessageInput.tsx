@@ -85,7 +85,11 @@ function MessageInputComponent({ sendMessage, isStreaming, selectedModel, setVoi
 
     const handlePause = () => {
         console.log('pause!')
-        cactusContext.context?.stopCompletion();
+        // In v0.1.4, the context object may have different method signatures
+        // Make sure stopCompletion exists before calling it
+        if (cactusContext.context?.stopCompletion) {
+            cactusContext.context.stopCompletion();
+        }
     }
 
     return (

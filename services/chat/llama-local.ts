@@ -12,6 +12,65 @@ export interface ChatCompleteCallback {
   (metrics: ModelMetrics, model: Model, completeMessage: string): void;
 }
 
+/**
+ * Initialize the conversation context with system message for v0.1.4
+ */
+export async function initializeConversationContext(
+  context: LlamaContext,
+  voiceMode?: boolean
+): Promise<void> {
+  const systemMessage = {
+    role: 'system',
+    content: `You are Cactus, a very capable AI assistant running offline on a smartphone. ${voiceMode ? 'Keep your messages VERY short. One-two sentences max.' : ''}`
+  };
+  
+  // Initialize context with system message
+  await context.completion({
+    messages: [systemMessage],
+    n_predict: 1, // Minimal prediction just to set the system message
+    stop: ['</s>']
+  });
+}
+
+/**
+ * Load existing conversation into context for v0.1.4
+ */
+export async function loadConversationIntoContext(
+  context: LlamaContext,
+  messages: Message[],
+  voiceMode?: boolean
+): Promise<void> {
+  if (messages.length === 0) {
+    // If no messages, just initialize with system message
+    await initializeConversationContext(context, voiceMode);
+    return;
+  }
+  
+  // First, clear any existing context
+  await context.rewind();
+  
+  // Format all messages including system message
+  const systemMessage = {
+    role: 'system',
+    content: `You are Cactus, a very capable AI assistant running offline on a smartphone. ${voiceMode ? 'Keep your messages VERY short. One-two sentences max.' : ''}`
+  };
+  
+  const formattedMessages = [
+    systemMessage,
+    ...messages.map(msg => ({
+      role: msg.isUser ? 'user' : 'assistant',
+      content: msg.text
+    }))
+  ];
+  
+  // Load all messages in one call to restore conversation context
+  await context.completion({
+    messages: formattedMessages,
+    n_predict: 1, // Minimal prediction just to load the context
+    stop: ['</s>']
+  });
+}
+
 export async function streamLlamaCompletion(
   context: LlamaContext | null,
   messages: Message[],
@@ -21,7 +80,8 @@ export async function streamLlamaCompletion(
   streaming: boolean = true,
   maxTokens: number,
   isReasoningEnabled: boolean,
-  voiceMode?: boolean
+  voiceMode?: boolean,
+  isFirstMessage?: boolean
 ) {
   try {
     console.log('Ensuring Llama context...', new Date().toISOString());
@@ -34,16 +94,13 @@ export async function streamLlamaCompletion(
                        '<|im_end|>', '<|EOT|>', '<|END_OF_TURN_TOKEN|>', 
                        '<|end_of_turn|>', '<|endoftext|>', '<end_of_turn>', '<|end_of_sentence|>'];
     
-    const formattedMessages = [
-      {
-        role: 'system',
-        content: `You are Cactus, a very capable AI assistant running offline on a smartphone. ${voiceMode ? 'Keep your messages VERY short. One-two sentences max.' : ''}`
-      },
-      ...messages.map(msg => ({
-        role: msg.isUser ? 'user' : 'assistant',
-        content: msg.text
-      }))
-    ];
+    // In v0.1.4, the context maintains its own message history
+    // So we only need to pass the latest message
+    const latestMessage = messages[messages.length - 1];
+    const formattedLatestMessage = {
+      role: latestMessage.isUser ? 'user' : 'assistant',
+      content: latestMessage.text
+    };
     
     const startTime = performance.now();
     let firstTokenTime: number | null = null;
@@ -58,7 +115,7 @@ export async function streamLlamaCompletion(
     if (streaming) {
       const result = await context.completion(
         {
-          messages: formattedMessages,
+          messages: [formattedLatestMessage], // Only pass the latest message
           n_predict: maxTokens,
           stop: stopWords,
         },
@@ -82,7 +139,7 @@ export async function streamLlamaCompletion(
       onComplete(modelMetrics, model, responseText);
     } else {
       const result = await context.completion({
-        messages: formattedMessages,
+        messages: [formattedLatestMessage],
         n_predict: 1024,
         stop: stopWords,
       });

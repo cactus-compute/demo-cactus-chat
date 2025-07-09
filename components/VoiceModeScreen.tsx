@@ -49,7 +49,7 @@ export const VoiceModeOverlay = ({
       setMessages(updatedMessages);
       await streamLlamaCompletion(
         cactusContext.context,
-        updatedMessages,
+        updatedMessages, // Pass the full array, context will handle the latest message
         currentModel,
         setAiMessageText,
         (metrics, model, completeMessage) => {
@@ -62,7 +62,7 @@ export const VoiceModeOverlay = ({
         true
       );
     }
-  }, [messages, selectedModelRef, tokenGenerationLimit])//, setMessages, setAiMessageText, setIsProcessing]);
+  }, [messages, selectedModelRef, tokenGenerationLimit, cactusContext.context])
 
   // Called when speech recognition encounters an error
   const onSpeechError = useCallback((e: any) => {
