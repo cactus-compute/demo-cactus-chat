@@ -43,6 +43,9 @@ export default function ChatScreen() {
     const loadConversationState = async () => {
       if (!cactusContext.context) return;
       
+      // Reset loaded state immediately when conversationId changes
+      setIsConversationLoaded(false);
+      
       const conversation = await getConversation(conversationId);
       if (conversation) {
         setMessages(conversation.messages);
@@ -57,15 +60,10 @@ export default function ChatScreen() {
       setIsConversationLoaded(true);
     };
     
-    if (cactusContext.context && !isConversationLoaded) {
+    if (cactusContext.context) {
       loadConversationState();
     }
   }, [conversationId, cactusContext.context, voiceMode]);
-
-  // Reset conversation loaded state when conversation changes
-  useEffect(() => {
-    setIsConversationLoaded(false);
-  }, [conversationId]);
 
   // Save conversation when messages change
   const saveCurrentConversation = async (currentMessages: Message[]) => {
