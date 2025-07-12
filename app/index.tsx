@@ -41,29 +41,18 @@ export default function ChatScreen() {
 
   useEffect(() => {
     const loadConversationState = async () => {
-      if (!cactusContext.context) return;
-      
-      // Reset loaded state immediately when conversationId changes
-      setIsConversationLoaded(false);
-      
       const conversation = await getConversation(conversationId);
       if (conversation) {
         setMessages(conversation.messages);
-        // Load the conversation into the context
-        await loadConversationIntoContext(cactusContext.context, conversation.messages, voiceMode);
       } else {
         setMessages([]);
-        // Initialize new conversation context
-        await initializeConversationContext(cactusContext.context, voiceMode);
         saveCurrentConversation([]);
       }
       setIsConversationLoaded(true);
     };
     
-    if (cactusContext.context) {
-      loadConversationState();
-    }
-  }, [conversationId, cactusContext.context, voiceMode]);
+    loadConversationState();
+  }, [conversationId]);
 
   // Save conversation when messages change
   const saveCurrentConversation = async (currentMessages: Message[]) => {

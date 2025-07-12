@@ -46,8 +46,8 @@ export async function loadConversationIntoContext(
     return;
   }
   
-  // First, clear any existing context
-  await context.rewind();
+  if (context.stopCompletion) await context.stopCompletion();
+  await Promise.race([context.rewind(), new Promise((_, reject) => setTimeout(reject, 3000))]);
   
   // Format all messages including system message
   const systemMessage = {
