@@ -133,6 +133,8 @@ export const ModelProvider = ({ children }: { children: React.ReactNode }) => {
           n_ctx: 2048,
           n_gpu_layers: gpuLayers
         });
+        // In v0.1.4, context maintains its own message history
+        // Context starts fresh when initialized, so no need to explicitly rewind here
         const endTime = performance.now();
         logModelLoadDiagnostics({model: selectedModel.value, loadTime: endTime - startTime});
         setCactusContext({

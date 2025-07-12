@@ -49,7 +49,7 @@ export const VoiceModeOverlay = ({
       setMessages(updatedMessages);
       await streamLlamaCompletion(
         cactusContext.context,
-        updatedMessages,
+        updatedMessages, // Pass the full array, context will handle the latest message
         currentModel,
         setAiMessageText,
         (metrics, model, completeMessage) => {
@@ -62,7 +62,7 @@ export const VoiceModeOverlay = ({
         true
       );
     }
-  }, [messages, selectedModelRef, tokenGenerationLimit])//, setMessages, setAiMessageText, setIsProcessing]);
+  }, [messages, selectedModelRef, tokenGenerationLimit, cactusContext.context])
 
   // Called when speech recognition encounters an error
   const onSpeechError = useCallback((e: any) => {
@@ -186,7 +186,9 @@ export const VoiceModeOverlay = ({
         {isListening && <Text textAlign="center">Listening...</Text>}
       </YStack>
       <YStack position='absolute' bottom='10%' width='80%' gap="$2">
-        <Text fontSize={12} textAlign='center' color="$gray10">This voice experience is currently powered by Apple Speech and not by Cactus Voice</Text>
+        <Text fontSize={12} textAlign='center' color="$gray10">
+          This voice experience is currently powered by Apple Speech and not by Cactus Voice
+        </Text>
         {errorMessage && <Text color="$red10">Error: {errorMessage}</Text>}
       </YStack>
     </YStack>
