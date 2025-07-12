@@ -1,5 +1,5 @@
-import { ScrollView, Slider, Text, XStack, YStack, ToggleGroup, Switch, Button, Input, Progress, View } from 'tamagui';
-import { Zap, Cpu, Brain, HardDrive, Download } from '@tamagui/lucide-icons';
+import { ScrollView, Slider, Text, XStack, YStack, ToggleGroup, Switch, Button, Input, Progress, View, Anchor } from 'tamagui';
+import { Zap, Cpu, Brain, HardDrive, Download, AlertTriangle } from '@tamagui/lucide-icons';
 import { useState } from 'react';
 import { Alert } from 'react-native';
 
@@ -190,6 +190,22 @@ export default function SettingsScreen() {
                                     onDeleteClick={() => {}}
                                 />
                             ))} 
+                            
+                            <YStack
+                                alignItems="center"
+                                gap="$2"
+                                borderWidth={1}
+                                borderColor="$gray6"
+                                borderRadius='$4'
+                                paddingVertical="$2.5"
+                                paddingHorizontal="$3"
+                            >
+                                <RegularText fontWeight="bold">Compatibility Note: </RegularText>
+                                <RegularText>You can experiment by downloading custom models below. For optimal performance, please use one of the recommended models above. </RegularText>
+                                <RegularText>Other models (notably, Qwen3) may not run correctly but are supported in the Cactus framework.</RegularText>
+                                <Anchor fontSize="$3" fontWeight="300" href="https://github.com/cactus-compute/cactus" target="_blank">Check out the Cactus repo!</Anchor>
+                            </YStack>
+                            {errorMessage && <RegularText color="$red10">{errorMessage}</RegularText>}
                             <XStack 
                                 alignItems="center"
                                 borderColor="$gray6"
@@ -225,7 +241,7 @@ export default function SettingsScreen() {
                                     opacity={downloadInProgress ? 0.6 : 1}
                                 />
                             </XStack>
-                            {errorMessage && <RegularText color="$red10">{errorMessage}</RegularText>}
+                            {errorMessage && <RegularText color="$red10" marginTop="$2">{errorMessage}</RegularText>}
                         </YStack>
                     </YStack>
                 </YStack>
