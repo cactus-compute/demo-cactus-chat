@@ -185,10 +185,10 @@ export const VoiceModeOverlay = ({
         {!isListening && <Text textAlign="center">Press and hold to speak</Text>}
         {isListening && <Text textAlign="center">Listening...</Text>}
       </YStack>
-      <YStack position='absolute' bottom='25%' width='80%'>
-          <Text textAlign="center" fontSize={12} color="$gray10">This voice experience is currently powered by Apple Speech, not Cactus Voice Models.</Text>
-      </YStack>
-      <YStack position='absolute' bottom='20%' width='80%'>
+      <YStack position='absolute' bottom='10%' width='80%' gap="$2">
+        <Text fontSize={12} textAlign='center' color="$gray10">
+          This voice experience is currently powered by Apple Speech and not by Cactus Voice
+        </Text>
         {errorMessage && <Text color="$red10">Error: {errorMessage}</Text>}
       </YStack>
     </YStack>

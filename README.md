@@ -1,4 +1,13 @@
-# Welcome to your Expo app 👋
+# Welcome to Cactus Chat 🌵
+
+This is a <ins>**demo**</ins> app we created to demonstrate the Cactus Framework. 
+
+It's built in React Native and runs LLM text generation on your phone! Give it a try:
+
+[![Download App](https://img.shields.io/badge/Cactus_Chat_iOS-grey?style=for-the-badge&logo=apple&logoColor=white)](https://apps.apple.com/gb/app/cactus-chat/id6744444212)
+[![Download App](https://img.shields.io/badge/Cactus_Chat_Android_App-grey?style=for-the-badge&logo=android&logoColor=white)](https://play.google.com/store/apps/details?id=com.rshemetsubuser.myapp&pcampaignid=web_share)
+
+# Build
 
 This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
 
@@ -7,14 +16,16 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
 1. Install dependencies
 
    ```bash
-   npm install
+   yarn
    ```
 
 2. Start the app
 
    ```bash
-    npx expo start
+    yarn run
    ```
+
+<ins>**NOTE**<ins> - Cactus relies on native modules, which aren't supported by the `expo start` command.
 
 In the output, you'll find options to open the app in a
 
@@ -25,13 +36,15 @@ In the output, you'll find options to open the app in a
 
 You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
 
-## Get a fresh project
+## Clean slate
 
-When you're ready, run:
+To definitively clear your build and re-build the project from scratch:
 
 ```bash
-npm run reset-project
+ rm -rm node_modules ios android .expo
 ```
+
+Then, return to the **Get Started** steps.
 
 This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
 
@@ -42,9 +55,6 @@ To learn more about developing your project with Expo, look at the following res
 - [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
 - [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
 
-## Join the community
+## Join the Cactus community
 
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+- [Discord community](https://discord.gg/nPGWGxXSwr): Chat with Cactus developers and ask questions.
