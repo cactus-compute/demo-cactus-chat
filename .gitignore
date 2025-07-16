@@ -1,3 +1,9 @@
+# IDE
+.idea
+./idea
+.vscode
+./vscode
+
 *.env
 *.expo
 node_modules
