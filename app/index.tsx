@@ -4,6 +4,7 @@ import { KeyboardAvoidingView, Platform } from 'react-native';
 import { Menu, Settings } from '@tamagui/lucide-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { useThemeColor } from '@/hooks/useThemeColor';
 
 import { Conversation, saveConversation, getConversation } from '../services/storage';
 import { ChatMessage, createUserMessage, Message } from '@/components/ui/chat/ChatMessage';
@@ -159,29 +160,32 @@ export default function ChatScreen() {
     }, 100);
   }
 
+  const backgroundColor = useThemeColor({}, 'background');
+  const iconColor = useThemeColor({}, 'icon');
+
   return (
-    <SafeAreaView style={{ flex: 1 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor }}>
       
         <KeyboardAvoidingView 
           behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
           style={{ flex: 1 }}
           keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
         >
-          <YStack flex={1} paddingHorizontal="$4">
+          <YStack flex={1} paddingHorizontal="$4" backgroundColor={backgroundColor}>
             <XStack 
               alignItems="center" 
               paddingVertical="$2"
               justifyContent="space-between"
             >
               <Button 
-                icon={<Menu size="$1"/>} 
+                icon={<Menu size="$1" color={iconColor}/>} 
                 size="$2" 
                 chromeless 
                 onPress={() => router.push('/conversationsScreen')}
               />
               <ModelDisplay/>
               <Button 
-                icon={<Settings size="$1"/>} 
+                icon={<Settings size="$1" color={iconColor}/>} 
                 size="$2" 
                 chromeless 
                 onPress={() => router.push('/settingsScreen')}
