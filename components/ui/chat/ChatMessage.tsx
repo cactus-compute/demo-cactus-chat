@@ -34,7 +34,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
   const { isDark } = useTheme();
   const textSecondary = useThemeColor({}, 'textSecondary');
   const surface = useThemeColor({}, 'surface');
-  const userBubbleColor = useThemeColor({ light: '#007AFF', dark: '#0A84FF' }, 'tint');
+  const userBubbleColor = useThemeColor({ light: 'white', dark: surface }, 'surface');
   
   const markdownTextColor = isDark ? '#ECEDEE' : '#11181C';
   const markdownHeadingColor = isDark ? '#FFFFFF' : '#000000';
@@ -57,17 +57,17 @@ export function ChatMessage({ message }: ChatMessageProps) {
         )}
         <Markdown 
           style={{ 
-            paragraph: { fontSize: 14, lineHeight: 21, fontWeight: '300', marginTop: 0, marginBottom: 0, color: isUser ? '#FFFFFF' : markdownTextColor },
-            bullet_list_content: { fontSize: 14, lineHeight: 21, fontWeight: '300', marginTop: 0, marginBottom: 5, color: isUser ? '#FFFFFF' : markdownTextColor },
-            ordered_list_content: { fontSize: 14, lineHeight: 21, fontWeight: '300', marginTop: 0, marginBottom: 5, color: isUser ? '#FFFFFF' : markdownTextColor },
-            heading1: { fontSize: 26, lineHeight: 31, fontWeight: '400', marginTop: 10, marginBottom: 10, color: isUser ? '#FFFFFF' : markdownHeadingColor },
-            heading2: { fontSize: 21, lineHeight: 31, fontWeight: '400', marginTop: 10, marginBottom: 10, color: isUser ? '#FFFFFF' : markdownHeadingColor },
-            heading3: { fontSize: 18, lineHeight: 21, fontWeight: '400', marginTop: 10, marginBottom: 10, color: isUser ? '#FFFFFF' : markdownHeadingColor },
-            heading4: { fontSize: 16, lineHeight: 21, fontWeight: '400', marginTop: 10, marginBottom: 10, color: isUser ? '#FFFFFF' : markdownHeadingColor },
-            heading5: { fontSize: 14, lineHeight: 21, fontWeight: '400', marginTop: 10, marginBottom: 10, color: isUser ? '#FFFFFF' : markdownHeadingColor },
-            heading6: { fontSize: 13, lineHeight: 21, fontWeight: '400', marginTop: 10, marginBottom: 10, color: isUser ? '#FFFFFF' : markdownHeadingColor },
-            bullet_list_icon: { marginLeft: 5, marginRight: 5, lineHeight: 21, color: isUser ? '#FFFFFF' : markdownTextColor },
-            ordered_list_icon: { marginLeft: 5, marginRight: 5, lineHeight: 21, color: isUser ? '#FFFFFF' : markdownTextColor },
+            paragraph: { fontSize: 14, lineHeight: 21, fontWeight: '300', marginTop: 0, marginBottom: 0, color: isUser ? (isDark ? '#FFFFFF' : '#000000') : markdownTextColor },
+            bullet_list_content: { fontSize: 14, lineHeight: 21, fontWeight: '300', marginTop: 0, marginBottom: 5, color: isUser ? (isDark ? '#FFFFFF' : '#000000') : markdownTextColor },
+            ordered_list_content: { fontSize: 14, lineHeight: 21, fontWeight: '300', marginTop: 0, marginBottom: 5, color: isUser ? (isDark ? '#FFFFFF' : '#000000') : markdownTextColor },
+            heading1: { fontSize: 26, lineHeight: 31, fontWeight: '400', marginTop: 10, marginBottom: 10, color: isUser ? (isDark ? '#FFFFFF' : '#000000') : markdownHeadingColor },
+            heading2: { fontSize: 21, lineHeight: 31, fontWeight: '400', marginTop: 10, marginBottom: 10, color: isUser ? (isDark ? '#FFFFFF' : '#000000') : markdownHeadingColor },
+            heading3: { fontSize: 18, lineHeight: 21, fontWeight: '400', marginTop: 10, marginBottom: 10, color: isUser ? (isDark ? '#FFFFFF' : '#000000') : markdownHeadingColor },
+            heading4: { fontSize: 16, lineHeight: 21, fontWeight: '400', marginTop: 10, marginBottom: 10, color: isUser ? (isDark ? '#FFFFFF' : '#000000') : markdownHeadingColor },
+            heading5: { fontSize: 14, lineHeight: 21, fontWeight: '400', marginTop: 10, marginBottom: 10, color: isUser ? (isDark ? '#FFFFFF' : '#000000') : markdownHeadingColor },
+            heading6: { fontSize: 13, lineHeight: 21, fontWeight: '400', marginTop: 10, marginBottom: 10, color: isUser ? (isDark ? '#FFFFFF' : '#000000') : markdownHeadingColor },
+            bullet_list_icon: { marginLeft: 5, marginRight: 5, lineHeight: 21, color: isUser ? (isDark ? '#FFFFFF' : '#000000') : markdownTextColor },
+            ordered_list_icon: { marginLeft: 5, marginRight: 5, lineHeight: 21, color: isUser ? (isDark ? '#FFFFFF' : '#000000') : markdownTextColor },
             fence: { marginTop: 10, marginBottom: 10, backgroundColor: isDark ? '#2D3748' : '#F7FAFC', borderRadius: 6, padding: 8 },
             code_block: { borderWidth: 0, marginTop: 0, marginBottom: 0, paddingBottom: 0, color: isDark ? '#E2E8F0' : '#2D3748', fontFamily: 'monospace' },
           }}

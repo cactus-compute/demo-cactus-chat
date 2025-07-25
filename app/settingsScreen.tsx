@@ -44,7 +44,6 @@ export default function SettingsScreen() {
         refreshModels
     } = useModelContext();
     const { themeMode, setThemeMode } = useTheme();
-    const tintColor = useThemeColor({}, 'tint');
     const borderColor = useThemeColor({}, 'border');
     const [ downloadInProgress, setDownloadInProgress ] = useState(false);
     const [ downloadProgress, setDownloadProgress ] = useState(0);
@@ -129,13 +128,13 @@ export default function SettingsScreen() {
                             value={themeMode} 
                             onValueChange={(value) => setThemeMode(value as any)}
                         >
-                            <ToggleGroup.Item value='light' flex={1} borderColor={themeMode === 'light' ? tintColor : borderColor}>
+                            <ToggleGroup.Item value='light' flex={1} borderColor={themeMode === 'light' ? "black" : borderColor}>
                                 <RegularText>Light</RegularText>
                             </ToggleGroup.Item>
-                            <ToggleGroup.Item value='dark' flex={1} borderColor={themeMode === 'dark' ? tintColor : borderColor}>
+                            <ToggleGroup.Item value='dark' flex={1} borderColor={themeMode === 'dark' ? "black" : borderColor}>
                                 <RegularText>Dark</RegularText>
                             </ToggleGroup.Item>
-                            <ToggleGroup.Item value='system' flex={1} borderColor={themeMode === 'system' ? tintColor : borderColor}>
+                            <ToggleGroup.Item value='system' flex={1} borderColor={themeMode === 'system' ? "black" : borderColor}>
                                 <RegularText>System</RegularText>
                             </ToggleGroup.Item>
                         </ToggleGroup>
@@ -144,10 +143,10 @@ export default function SettingsScreen() {
                     <YStack gap="$4">
                         <TextWithIcon Icon={Zap} text="Token generation limit"/>
                         <Slider size="$6" defaultValue={[tokenGenerationLimit]} max={2500} min={100} step={25} onValueChange={(value: number[]) => setTokenGenerationLimit(value[0])}>
-                            <Slider.Track backgroundColor={borderColor}>
-                                <Slider.TrackActive backgroundColor={tintColor}/>
+                            <Slider.Track backgroundColor="$gray6">
+                                <Slider.TrackActive backgroundColor='black'/>
                             </Slider.Track>
-                            <Slider.Thumb circular index={0} size="$2" backgroundColor={useThemeColor({}, 'background')} borderColor={tintColor}/>
+                            <Slider.Thumb circular index={0} size="$2" backgroundColor='white' borderColor="black"/>
                         </Slider>
                         <XStack>
                             <RegularText>100</RegularText>
@@ -158,10 +157,10 @@ export default function SettingsScreen() {
                     <YStack gap="$2">
                         <TextWithIcon Icon={Cpu} text="Inference hardware"/>
                         <ToggleGroup marginTop="$1" type="multiple" defaultValue={inferenceHardware} onValueChange={setInferenceHardware}>
-                            <ToggleGroup.Item value='cpu' flex={1} disabled={true} borderColor={inferenceHardware.includes('cpu') ? tintColor : "transparent"}>
+                            <ToggleGroup.Item value='cpu' flex={1} disabled={true} borderColor={inferenceHardware.includes('cpu') ? "black" : "transparent"}>
                                 <RegularText>CPU</RegularText>
                             </ToggleGroup.Item>
-                            <ToggleGroup.Item value='gpu' flex={1} borderColor={inferenceHardware.includes('gpu') ? tintColor : borderColor}>
+                            <ToggleGroup.Item value='gpu' flex={1} borderColor={inferenceHardware.includes('gpu') ? "black" : "$gray6"}>
                                 <RegularText>GPU</RegularText>
                             </ToggleGroup.Item>
                         </ToggleGroup>
