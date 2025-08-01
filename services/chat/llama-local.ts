@@ -1,7 +1,7 @@
 import { Message } from '@/components/ui/chat/ChatMessage';
 import { ModelMetrics } from '@/utils/modelMetrics';
 import { Model } from '../models';
-import { LlamaContext } from 'cactus-react-native';
+import { CactusLM } from 'cactus-react-native';
 import * as Haptics from 'expo-haptics';
 
 export interface ChatProgressCallback {
@@ -13,7 +13,7 @@ export interface ChatCompleteCallback {
 }
 
 export async function streamLlamaCompletion(
-  context: LlamaContext | null,
+  lm: CactusLM | null,
   messages: Message[],
   model: Model,
   onProgress: ChatProgressCallback,
@@ -25,7 +25,7 @@ export async function streamLlamaCompletion(
 ) {
   try {
     console.log('Ensuring Llama context...', new Date().toISOString());
-    if (!context) {
+    if (!lm) {
       throw new Error('Failed to initialize Llama context');
     }
     console.log('Llama context initialized', new Date().toISOString());
@@ -56,9 +56,9 @@ export async function streamLlamaCompletion(
     };
     
     if (streaming) {
-      const result = await context.completion(
+      const result = await lm.completion(
+        formattedMessages,
         {
-          messages: formattedMessages,
           n_predict: maxTokens,
           stop: stopWords,
         },
@@ -81,8 +81,9 @@ export async function streamLlamaCompletion(
       modelMetrics.tokensPerSecond = result.timings?.predicted_per_second
       onComplete(modelMetrics, model, responseText);
     } else {
-      const result = await context.completion({
-        messages: formattedMessages,
+      const result = await lm.completion(
+        formattedMessages,
+        {
         n_predict: 1024,
         stop: stopWords,
       });

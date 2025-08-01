@@ -60,10 +60,14 @@ export default function ChatScreen() {
     
     // Get title from first user message or use default
     const firstUserMessage = currentMessages.find(m => m.isUser);
-    const title = firstUserMessage 
+    let title = firstUserMessage 
       ? firstUserMessage.text.substring(0, 30) + (firstUserMessage.text.length > 30 ? '...' : '') 
       : 'New Conversation';
     
+    if (title.startsWith('/no_think')) {
+      title = title.split('/no_think').at(1) || "";
+    }
+
     const conversation: Conversation = {
       id: conversationId,
       title,
@@ -130,7 +134,7 @@ export default function ChatScreen() {
     if (!inputText.trim() || isStreaming) return;
     if (!selectedModel) return;
 
-    const userMessage: Message = createUserMessage(inputText, selectedModel);
+    const userMessage: Message = createUserMessage(`${isReasoningEnabled ? '' : '/no_think'}${inputText}`, selectedModel);
 
     const updatedMessages = [...messages, userMessage];
     setMessages(updatedMessages);
@@ -140,7 +144,7 @@ export default function ChatScreen() {
     try {
       // await sendChatMessage(
       await streamLlamaCompletion(
-        cactusContext.context,
+        cactusContext.lm,
         updatedMessages,
         selectedModel,
         chatCallbackPartialMessage,

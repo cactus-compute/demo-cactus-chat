@@ -166,7 +166,7 @@ export default function SettingsScreen() {
                         </ToggleGroup>
                         <RegularText>Select CPU-only for battery-efficient inference.</RegularText>
                     </YStack>
-                    {/* <YStack gap="$2">
+                    <YStack gap="$2">
                         <XStack>
                             <XStack flex={1}>
                                 <TextWithIcon Icon={Brain} text="Reasoning mode"/>
@@ -176,7 +176,7 @@ export default function SettingsScreen() {
                             </Switch>
                         </XStack>
                         <RegularText>Slower, more thoughtful responses from reasoning-enabled models.</RegularText>
-                    </YStack> */}
+                    </YStack>
                     <YStack gap="$2">
                         <TextWithIcon Icon={HardDrive} text="Local models"/>
                         {downloadInProgress && (
@@ -226,8 +226,7 @@ export default function SettingsScreen() {
                             >
                                 <RegularText fontWeight="bold">Compatibility Note: </RegularText>
                                 <RegularText>You can experiment by downloading custom models below. For optimal performance, please use one of the recommended models above. </RegularText>
-                                <RegularText>Other models (notably, Qwen3) may not run correctly but are supported in the Cactus framework.</RegularText>
-                                <Anchor fontSize="$3" fontWeight="300" href="https://github.com/cactus-compute/cactus" target="_blank">Check out the Cactus repo!</Anchor>
+                                <Anchor fontSize="$3" fontWeight="300" textAlign="center" lineHeight={15} href="https://github.com/cactus-compute/cactus" target="_blank">Want to build your own app powered by local AI? Check out the Cactus repo!</Anchor>
                             </YStack>
                             {errorMessage && <RegularText color="$red10">{errorMessage}</RegularText>}
                             <XStack 

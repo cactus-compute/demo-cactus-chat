@@ -3,7 +3,7 @@
     "name": "Cactus Chat",
     "slug": "my-app",
     "displayName": "Cactus Chat",
-    "version": "1.0.3",
+    "version": "1.0.5",
     "orientation": "portrait",
     "icon": "./assets/images/bw-logo.png",
     "scheme": "myapp",

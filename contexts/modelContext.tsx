@@ -18,12 +18,12 @@ import {
   saveIsReasoningEnabled,
   getFullModelPath
 } from '@/services/storage';
-import { initLlama, LlamaContext, releaseAllLlama } from 'cactus-react-native';
+import { releaseAllLlama, CactusLM } from 'cactus-react-native';
 import { logModelLoadDiagnostics } from '@/services/diagnostics';
 import { generateUniqueId } from '@/services/chat/llama-local';
 
 interface LoadedContext {
-  context: LlamaContext | null,
+  lm: CactusLM | null,
   model: Model | null,
   inferenceHardware: InferenceHardware[]
 }
@@ -47,7 +47,7 @@ interface ModelContextType {
 }
 
 const ModelContext = createContext<ModelContextType>({
-    cactusContext: {context: null, model: null, inferenceHardware: []},
+    cactusContext: {lm: null, model: null, inferenceHardware: []},
     isContextLoading: false,
     availableModels: [],
     selectedModel: null,
@@ -70,7 +70,7 @@ export const ModelProvider = ({ children }: { children: React.ReactNode }) => {
   const [modelsVersion, setModelsVersion] = useState<number>(0);
   const [tokenGenerationLimit, setTokenGenerationLimit] = useState<number>(1000);
   const [inferenceHardware, setInferenceHardware] = useState<InferenceHardware[]>(['cpu']);
-  const [cactusContext, setCactusContext] = useState<LoadedContext>({context: null, model: null, inferenceHardware: []});
+  const [cactusContext, setCactusContext] = useState<LoadedContext>({lm: null, model: null, inferenceHardware: []});
   const [isContextLoading, setIsContextLoading] = useState<boolean>(false);
   const [isReasoningEnabled, setIsReasoningEnabled] = useState<boolean>(true);
   const [conversationId, setConversationId] = useState<string>(generateUniqueId())
@@ -127,7 +127,13 @@ export const ModelProvider = ({ children }: { children: React.ReactNode }) => {
         const modelPath = getFullModelPath(selectedModel.meta?.fileName || '');
         const gpuLayers = Platform.OS === 'ios' && inferenceHardware.includes('gpu') ? 99 : 0
         const startTime = performance.now();
-        const context = await initLlama({
+        // const context = await initLlama({
+        //   model: modelPath,
+        //   use_mlock: true,
+        //   n_ctx: 2048,
+        //   n_gpu_layers: gpuLayers
+        // });
+        const { lm } = await CactusLM.init({
           model: modelPath,
           use_mlock: true,
           n_ctx: 2048,
@@ -136,7 +142,7 @@ export const ModelProvider = ({ children }: { children: React.ReactNode }) => {
         const endTime = performance.now();
         logModelLoadDiagnostics({model: selectedModel.value, loadTime: endTime - startTime});
         setCactusContext({
-          context: context,
+          lm: lm,
           model: selectedModel,
           inferenceHardware: inferenceHardware
         })

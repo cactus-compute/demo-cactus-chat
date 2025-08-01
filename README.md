@@ -1,6 +1,6 @@
 # Welcome to Cactus Chat 🌵
 
-This is a <ins>**demo**</ins> app we created to demonstrate the Cactus Framework. 
+This is a <ins>**demo**</ins> app we created to demonstrate the [Cactus](https://github.com/cactus-compute/cactus) Framework.
 
 It's built in React Native and runs LLM text generation on your phone! Give it a try:
 
