@@ -45,7 +45,6 @@ export default function SettingsScreen() {
     return (
         <OnboardingScreenLayout>
             <XStack paddingVertical="$4" paddingHorizontal="$2.5">
-                <Button size="$2"/>
                 <XStack flex={1}>
                     <PageHeader title="Conversations"/>
                 </XStack>
