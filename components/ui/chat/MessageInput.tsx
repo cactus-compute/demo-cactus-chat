@@ -4,6 +4,7 @@ import { Model } from "@/services/models";
 import { useState, memo} from "react";
 import { requestMicrophonePermission } from "@/utils/voiceFunctions";
 import { useModelContext } from "@/contexts/modelContext";
+import { useThemeColor } from '@/hooks/useThemeColor';
 
 // --- Define Props for the Extracted Button Component ---
 interface MessageInputButtonProps {
@@ -17,7 +18,7 @@ interface MessageInputButtonProps {
     setVoiceMode: (voiceMode: boolean) => void;
 }
 
-const MessageInputButton = memo(({
+const MessageInputButton = memo(function MessageInputButton({
     inputText,
     isStreaming,
     modelIsLoading,
@@ -26,7 +27,7 @@ const MessageInputButton = memo(({
     onSendPress,
     onPausePress,
     setVoiceMode
-}: MessageInputButtonProps) => {
+}: MessageInputButtonProps) {
     // Conditional rendering based on props
     if (isStreaming) {
         return <Button icon={<Pause size="$1.5"/>} onPress={onPausePress} aria-label="Pause Streaming" chromeless/>;
@@ -77,6 +78,9 @@ interface MessageInputProps {
 function MessageInputComponent({ sendMessage, isStreaming, selectedModel, setVoiceMode }: MessageInputProps) {
     const [ inputText, setInputText ] = useState<string>('')
     const { isContextLoading, cactusContext } = useModelContext()
+    const backgroundColor = useThemeColor({}, 'surface');
+    const borderColor = useThemeColor({}, 'border');
+    const textColor = useThemeColor({}, 'text');
 
     const onSubmit = () => {
         sendMessage(inputText)
@@ -92,11 +96,11 @@ function MessageInputComponent({ sendMessage, isStreaming, selectedModel, setVoi
         <XStack 
             paddingVertical={16}
             borderWidth={1}
-            borderColor={isContextLoading ? '$gray8' : '$black'}
+            borderColor={isContextLoading ? '$gray8' : borderColor}
             borderRadius='$6'
             marginBottom='$2'
             padding="$2"
-            backgroundColor="#FFF"
+            backgroundColor={backgroundColor}
         >
             <Input 
             // <TextArea
@@ -108,6 +112,8 @@ function MessageInputComponent({ sendMessage, isStreaming, selectedModel, setVoi
                 onSubmitEditing={onSubmit}
                 borderWidth={0}
                 backgroundColor="transparent"
+                color={textColor}
+                placeholderTextColor={useThemeColor({}, 'textSecondary')}
             />
             <YStack alignItems="center" justifyContent="center" minWidth="$6">
                 <MessageInputButton 

@@ -3,6 +3,7 @@ import { Button, ScrollView, XStack, YStack } from "tamagui";
 import { router } from "expo-router";
 import { PenSquare } from "@tamagui/lucide-icons";
 import { Dimensions } from 'react-native';
+import { useThemeColor } from '@/hooks/useThemeColor';
 
 import OnboardingScreenLayout from "@/components/ui/onboarding/OnboardingScreenLayout";
 import { RegularText } from "@/components/ui/RegularText";
@@ -37,14 +38,17 @@ export default function SettingsScreen() {
         router.back();
     }
 
+    const iconColor = useThemeColor({}, 'icon');
+    const surfaceColor = useThemeColor({}, 'surface');
+    const borderColor = useThemeColor({}, 'border');
+
     return (
         <OnboardingScreenLayout>
             <XStack paddingVertical="$4" paddingHorizontal="$2.5">
-                <Button size="$2"/>
                 <XStack flex={1}>
                     <PageHeader title="Conversations"/>
                 </XStack>
-                <Button size="$2" icon={<PenSquare size="$1"/>} marginTop="$1" onPress={createNewConversation}/>
+                <Button size="$2" icon={<PenSquare size="$1" color={iconColor}/>} marginTop="$1" onPress={createNewConversation}/>
             </XStack>
             <ScrollView width="100%" style={{ height: screenHeight * 0.8 }}>
                 <YStack gap="$4">
@@ -52,6 +56,12 @@ export default function SettingsScreen() {
                         <YStack 
                             key={conversation.id} 
                             paddingHorizontal="$4" 
+                            paddingVertical="$3"
+                            backgroundColor={surfaceColor}
+                            borderRadius="$4"
+                            borderWidth={1}
+                            borderColor={borderColor}
+                            marginHorizontal="$4"
                             onPress={() => selectConversation(conversation.id)}
                         >
                             <RegularText textAlign='left' fontWeight={600}>{conversation.title}</RegularText>

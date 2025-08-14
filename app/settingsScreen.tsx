@@ -1,11 +1,13 @@
 import { ScrollView, Slider, Text, XStack, YStack, ToggleGroup, Switch, Button, Input, Progress, View, Anchor } from 'tamagui';
-import { Zap, Cpu, Brain, HardDrive, Download, AlertTriangle } from '@tamagui/lucide-icons';
+import { Zap, Cpu, Brain, HardDrive, Download, AlertTriangle, Palette } from '@tamagui/lucide-icons';
 import { useState } from 'react';
 import { Alert } from 'react-native';
 
 import OnboardingScreenLayout from '@/components/ui/onboarding/OnboardingScreenLayout';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { useModelContext } from '@/contexts/modelContext'
+import { useTheme } from '@/contexts/themeContext';
+import { useThemeColor } from '@/hooks/useThemeColor';
 import { RegularText } from '@/components/ui/RegularText';
 import { downloadModel, extractModelNameFromUrl, validateModelUrl } from '@/utils/modelUtils'
 import { ModelListItem } from '@/components/ui/settings/ModelListItem'
@@ -34,13 +36,15 @@ export default function SettingsScreen() {
         setTokenGenerationLimit, 
         inferenceHardware, 
         setInferenceHardware, 
-        isReasoningEnabled, 
+        isReasoningEnabled,
         setIsReasoningEnabled,
         modelsAvailableToDownload,
         availableModels,
         selectedModel,
         refreshModels
     } = useModelContext();
+    const { themeMode, setThemeMode } = useTheme();
+    const borderColor = useThemeColor({}, 'border');
     const [ downloadInProgress, setDownloadInProgress ] = useState(false);
     const [ downloadProgress, setDownloadProgress ] = useState(0);
     const [ errorMessage, setErrorMessage ] = useState('');
@@ -116,6 +120,26 @@ export default function SettingsScreen() {
             />
             <ScrollView width="95%" showsVerticalScrollIndicator={false}>
                 <YStack paddingVertical="$4" paddingHorizontal="$2" gap="$6">
+                    <YStack gap="$2">
+                        <TextWithIcon Icon={Palette} text="Theme"/>
+                        <ToggleGroup 
+                            marginTop="$1" 
+                            type="single" 
+                            value={themeMode} 
+                            onValueChange={(value) => setThemeMode(value as any)}
+                        >
+                            <ToggleGroup.Item value='light' flex={1} borderColor={themeMode === 'light' ? "black" : borderColor}>
+                                <RegularText>Light</RegularText>
+                            </ToggleGroup.Item>
+                            <ToggleGroup.Item value='dark' flex={1} borderColor={themeMode === 'dark' ? "black" : borderColor}>
+                                <RegularText>Dark</RegularText>
+                            </ToggleGroup.Item>
+                            <ToggleGroup.Item value='system' flex={1} borderColor={themeMode === 'system' ? "black" : borderColor}>
+                                <RegularText>System</RegularText>
+                            </ToggleGroup.Item>
+                        </ToggleGroup>
+                        <RegularText>Choose your preferred theme. System follows your device settings.</RegularText>
+                    </YStack>
                     <YStack gap="$4">
                         <TextWithIcon Icon={Zap} text="Token generation limit"/>
                         <Slider size="$6" defaultValue={[tokenGenerationLimit]} max={2500} min={100} step={25} onValueChange={(value: number[]) => setTokenGenerationLimit(value[0])}>
