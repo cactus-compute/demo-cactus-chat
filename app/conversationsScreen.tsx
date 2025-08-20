@@ -11,9 +11,9 @@ import { Conversation, getConversations } from '../services/storage';
 import { useModelContext } from "@/contexts/modelContext";
 import { generateUniqueId } from "@/services/chat/llama-local";
 
-export default function SettingsScreen() {
+export default function ConversationsScreen() {
     const [conversations, setConversations] = useState<Conversation[]>([]);
-    const { setConversationId } = useModelContext()
+    const { setConversationId } = useModelContext();
 
     const screenHeight = Dimensions.get('window').height;
 
@@ -30,12 +30,12 @@ export default function SettingsScreen() {
         const newId = generateUniqueId();
         setConversationId(newId);
         router.back();
-    }
+    };
 
     const selectConversation = (id: string) => {
         setConversationId(id);
         router.back();
-    }
+    };
 
     return (
         <OnboardingScreenLayout>
@@ -66,5 +66,5 @@ export default function SettingsScreen() {
                 </YStack>
             </ScrollView>
         </OnboardingScreenLayout>
-    )
+    );
 }
