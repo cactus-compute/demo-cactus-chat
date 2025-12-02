@@ -1,10 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Message } from '@/components/ui/chat/ChatMessage';
-import { InferenceHardware, Model, ModelAvailableToDownload } from '@/services/models';
-import * as FileSystem from 'expo-file-system';
+import { InferenceHardware, CactusModel } from '@/services/models';
 import { Provider } from '@/services/models';
 import { supabase } from '@/services/supabase';
-import { Platform } from 'react-native';
 import { getBrand, getModel, getSystemVersion } from 'react-native-device-info';
 
 // Keys for AsyncStorage
@@ -17,6 +15,7 @@ const MODELS_AVAILABLE_TO_DOWNLOAD_KEY = '@models_available_to_download';
 const IS_REASONING_ENABLED_KEY = '@is_reasoning_enabled';
 const LANGUAGE_PREFERENCE_KEY = '@language_preference';
 const SYSTEM_PROMPT_KEY = '@system_prompt';
+const ONBOARDING_COMPLETE_KEY = '@onboarding_complete';
 
 export const getTokenGenerationLimit = async (): Promise<number> => {
   const limit = await AsyncStorage.getItem(TOKEN_GENERATION_LIMIT_KEY);
@@ -46,14 +45,9 @@ export const saveIsReasoningEnabled = async (enabled: boolean) => {
   await AsyncStorage.setItem(IS_REASONING_ENABLED_KEY, enabled.toString());
 } 
 
-export const getModelDirectory = () => 
-  `${FileSystem.documentDirectory}local-models/`;
-  // Platform.OS === 'ios' 
-  //   ? `${FileSystem.documentDirectory}local-models/`
-  //   : `${FileSystem.cacheDirectory}local-models/`;
-
-export const getFullModelPath = (fileName: string) => 
-  `${getModelDirectory()}${fileName}`;
+// Deprecated: SDK handles model file storage now
+// export const getModelDirectory = () => `${FileSystem.documentDirectory}local-models/`;
+// export const getFullModelPath = (fileName: string) => `${getModelDirectory()}${fileName}`;
 
 interface RegisterDeviceResponse {
   success: boolean;
@@ -78,7 +72,7 @@ export interface Conversation {
   title: string;
   messages: Message[];
   lastUpdated: number;
-  model: Model;
+  model: CactusModel;
 }
 
 // Store structure - a simple dictionary of conversations by ID
@@ -202,31 +196,39 @@ export async function saveSystemPrompt(prompt: string): Promise<void> {
   await AsyncStorage.setItem(SYSTEM_PROMPT_KEY, prompt);
 }
 
-export const storeLocalModel = (model: Model) => 
-  AsyncStorage.setItem(`local_model_${model.value}`, JSON.stringify(model));
+// Deprecated: SDK handles model storage now via getModels() API
+// export const storeLocalModel = (model: CactusModel) =>
+//   AsyncStorage.setItem(`local_model_${model.slug}`, JSON.stringify(model));
 
-export const getLocalModels = async (): Promise<Model[]> => {
-  const keys = await AsyncStorage.getAllKeys();
-  const models = await AsyncStorage.multiGet(keys.filter(k => k.startsWith('local_model_')));
-  return models.map(([_, val]) => JSON.parse(val as string) as Model);
-};
+// export const getLocalModels = async (): Promise<CactusModel[]> => {
+//   const keys = await AsyncStorage.getAllKeys();
+//   const models = await AsyncStorage.multiGet(keys.filter(k => k.startsWith('local_model_')));
+//   return models.map(([_, val]) => JSON.parse(val as string) as CactusModel);
+// };
 
-export const removeLocalModel = async (id: string) => {
-  const localModel = await AsyncStorage.getItem(`local_model_${id}`);
-  if (localModel) {
-    const model = JSON.parse(localModel) as Model;
-    await FileSystem.deleteAsync(getFullModelPath(model.meta?.fileName || ''));
-    await AsyncStorage.removeItem(`local_model_${id}`);
-  }
+// export const removeLocalModel = async (id: string) => {
+//   // Model deletion now handled by SDK via destroy() method
+//   await AsyncStorage.removeItem(`local_model_${id}`);
+// }
+
+// export const getModelsAvailableToDownload = async (): Promise<CactusModel[]> => {
+//   // Now handled by SDK via getModels() and filtering by isDownloaded
+//   const data = await AsyncStorage.getItem(MODELS_AVAILABLE_TO_DOWNLOAD_KEY);
+//   return data ? JSON.parse(data) : [];
+// }
+
+// export const saveModelsAvailableToDownload = async (models: CactusModel[]) => {
+//   // No longer needed - SDK provides this data
+//   await AsyncStorage.setItem(MODELS_AVAILABLE_TO_DOWNLOAD_KEY, JSON.stringify(models));
+// }
+
+export const getOnboardingComplete = async (): Promise<boolean> => {
+  const value = await AsyncStorage.getItem(ONBOARDING_COMPLETE_KEY);
+  return value === 'true';
 }
 
-export const getModelsAvailableToDownload = async (): Promise<ModelAvailableToDownload[]> => {
-  const data = await AsyncStorage.getItem(MODELS_AVAILABLE_TO_DOWNLOAD_KEY);
-  return data ? JSON.parse(data) : [];
-}
-
-export const saveModelsAvailableToDownload = async (models: ModelAvailableToDownload[]) => {
-  await AsyncStorage.setItem(MODELS_AVAILABLE_TO_DOWNLOAD_KEY, JSON.stringify(models));
+export const setOnboardingComplete = async (complete: boolean): Promise<void> => {
+  await AsyncStorage.setItem(ONBOARDING_COMPLETE_KEY, complete.toString());
 }
 
 export const getLanguagePreference = async (): Promise<string | null> => {

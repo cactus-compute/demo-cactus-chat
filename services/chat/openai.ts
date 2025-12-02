@@ -3,11 +3,11 @@ import { ModelMetrics } from '../../utils/modelMetrics';
 import EventSource from 'react-native-sse';
 import { Message } from '../../components/ui/chat/ChatMessage';
 import { ChatCompleteCallback, ChatProgressCallback } from './chat';
-import { Model } from '../models';
+import { CactusModel } from '../models';
 
 export async function streamOpenAICompletion(
   messages: Message[],
-  model: Model,
+  model: CactusModel,
   onProgress: ChatProgressCallback,
   onComplete: ChatCompleteCallback,
   streaming: boolean = true,
@@ -39,7 +39,7 @@ export async function streamOpenAICompletion(
     if (streaming) {
 
       const payload = {
-        model: model.value,
+        model: model.slug,
         messages: formattedMessages,
         stream: true,
         max_tokens: maxTokens,

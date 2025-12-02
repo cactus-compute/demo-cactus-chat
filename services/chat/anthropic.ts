@@ -1,13 +1,13 @@
-import { getApiKey } from '../storage';  
+import { getApiKey } from '../storage';
 import { Message } from '@/components/ui/chat/ChatMessage';
 import { ModelMetrics } from '@/utils/modelMetrics';
 import EventSource from 'react-native-sse';
 import { ChatCompleteCallback, ChatProgressCallback } from './chat';
-import { Model } from '../models';
+import { CactusModel } from '../models';
 
 export async function streamAnthropicCompletion(
   messages: Message[],
-  model: Model,
+  model: CactusModel,
   onProgress: ChatProgressCallback,
   onComplete: ChatCompleteCallback,
   streaming: boolean = true,
@@ -38,7 +38,7 @@ export async function streamAnthropicCompletion(
     if (streaming) {
 
       const payload = {
-        model: model.value,
+        model: model.slug,
         max_tokens: maxTokens,
         messages: formattedMessages,
         stream: true,

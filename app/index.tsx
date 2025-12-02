@@ -12,7 +12,7 @@ import { ModelMetrics } from '@/utils/modelMetrics';
 import { useModelContext } from '@/contexts/modelContext';
 import { logChatCompletionDiagnostics } from '@/services/diagnostics';
 import { MessageInput } from '@/components/ui/chat/MessageInput';
-import { Model } from '@/services/models';
+import { CactusModel } from '@/services/models';
 // import { VoiceModeOverlay } from '@/components/VoiceModeScreen';
 import { streamLlamaCompletion, generateUniqueId } from '@/services/chat/llama-local';
 
@@ -103,7 +103,7 @@ export default function ChatScreen() {
   }
 
   function chatCallbackPartialMessage(streamText: string) {
-    streamingUpdateRef.current.text = streamText;
+    streamingUpdateRef.current.text += streamText;
     // Only schedule a frame if one isn't already pending
     if (streamingUpdateRef.current.frameId === null) {
       streamingUpdateRef.current.frameId = requestAnimationFrame(() => {
@@ -113,15 +113,15 @@ export default function ChatScreen() {
     }
   }
 
-  function chatCallbackCompleteMessage(modelMetrics: ModelMetrics, model: Model) {
+  function chatCallbackCompleteMessage(modelMetrics: ModelMetrics, model: CactusModel) {
     setIsStreaming(false);
-    
+
     if (streamingUpdateRef.current.frameId !== null) {
       cancelAnimationFrame(streamingUpdateRef.current.frameId);
       streamingUpdateRef.current.frameId = null;
     }
     logChatCompletionDiagnostics({
-      llm_model: model.value,
+      llm_model: model.name,
       tokens_per_second: modelMetrics.tokensPerSecond,
       time_to_first_token: modelMetrics.timeToFirstToken,
       generated_tokens: modelMetrics.completionTokens,
@@ -141,6 +141,7 @@ export default function ChatScreen() {
     saveCurrentConversation(updatedMessages); 
     
     setIsStreaming(true);
+    streamingUpdateRef.current.text = ''; // Reset for new streaming message
     try {
       // await sendChatMessage(
       await streamLlamaCompletion(

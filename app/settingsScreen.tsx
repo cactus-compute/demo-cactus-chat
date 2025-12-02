@@ -7,9 +7,8 @@ import OnboardingScreenLayout from '@/components/ui/onboarding/OnboardingScreenL
 import { PageHeader } from '@/components/ui/PageHeader';
 import { useModelContext } from '@/contexts/modelContext'
 import { RegularText } from '@/components/ui/RegularText';
-import { downloadModel, extractModelNameFromUrl, validateModelUrl } from '@/utils/modelUtils'
-import { ModelListItem } from '@/components/ui/settings/ModelListItem'
-import { removeLocalModel } from '@/services/storage';
+import { ModelListItem } from '@/components/ui/settings/ModelListItem';
+import { CactusLM } from 'cactus-react-native';
 
 interface TextWithIconProps {
     Icon: React.ElementType,
@@ -29,19 +28,21 @@ function TextWithIcon({
 }
 
 export default function SettingsScreen() {
-    const { 
-        tokenGenerationLimit, 
-        setTokenGenerationLimit, 
-        inferenceHardware, 
-        setInferenceHardware, 
-        isReasoningEnabled, 
+    const {
+        tokenGenerationLimit,
+        setTokenGenerationLimit,
+        inferenceHardware,
+        setInferenceHardware,
+        isReasoningEnabled,
         setIsReasoningEnabled,
         modelsAvailableToDownload,
         availableModels,
         selectedModel,
+        setSelectedModel,
         refreshModels,
         systemPrompt,
-        setSystemPrompt
+        setSystemPrompt,
+        cactusContext
     } = useModelContext();
     const [ downloadInProgress, setDownloadInProgress ] = useState(false);
     const [ downloadProgress, setDownloadProgress ] = useState(0);
@@ -50,50 +51,49 @@ export default function SettingsScreen() {
     const [ tempSystemPrompt, setTempSystemPrompt ] = useState('');
     const [ isEditingPrompt, setIsEditingPrompt ] = useState(false);
 
-    const handleModelDownload = async (urlOverride?: string) => {
-        setErrorMessage('');
-
-        const urlToDownload = urlOverride || modelUrl;
-        
-        // Validate URL
-        const { valid, reason, contentLength } = await validateModelUrl(urlToDownload);
-        if (!valid) {
-            setErrorMessage(reason || 'Invalid URL');
-            return;
-        }
-
+    const handleModelDownload = async (modelSlug: string, modelName: string, sizeMb: number) => {
         Alert.alert(
-            `Download ${extractModelNameFromUrl(urlToDownload)}`, 
-            `This will download ${contentLength ? (contentLength / 10e8).toFixed(2) + 'GB' : 'unknown size'} of data. We recommend doing this over WiFi.`,
+            `Download ${modelName}`,
+            `This will download ${(sizeMb / 1024).toFixed(2)} GB of data. We recommend doing this over WiFi.`,
             [
-            {
-                text: "Cancel",
-                style: "cancel"
-            },
-            {
-                text: "Download",
-                style: "default",
-                onPress: async () => {
-                try {
-                    setDownloadInProgress(true);
-                    await downloadModel(urlToDownload, setDownloadProgress);
-                    setModelUrl('');
-                    refreshModels();
-                } catch (error: any) {
-                    setErrorMessage(error.message || 'Download failed');
-                } finally {
-                    setDownloadInProgress(false);
-                    setDownloadProgress(0);
+                {
+                    text: "Cancel",
+                    style: "cancel"
+                },
+                {
+                    text: "Download",
+                    style: "default",
+                    onPress: async () => {
+                        try {
+                            setDownloadInProgress(true);
+                            setDownloadProgress(0);
+
+                            // Create a new CactusLM instance specifically for downloading this model
+                            const downloadLM = new CactusLM({ model: modelSlug, contextSize: 2048 });
+
+                            // Download the model
+                            await downloadLM.download({
+                                onProgress: (progress) => {
+                                    setDownloadProgress(Math.round(progress * 100));
+                                }
+                            });
+
+                            refreshModels();
+                        } catch (error: any) {
+                            Alert.alert('Download Failed', error.message || 'Failed to download model');
+                        } finally {
+                            setDownloadInProgress(false);
+                            setDownloadProgress(0);
+                        }
+                    }
                 }
-                }
-            }
             ]
         );
     };
 
-    const handleDeleteModel = (modelValue: string) => {
+    const handleDeleteModel = async (modelSlug: string, modelName: string) => {
         Alert.alert(
-          `Delete ${modelValue}`, 
+          `Delete ${modelName}`,
           `Are you sure you want to delete this model? This cannot be undone. You will need to download the model again to use it.`,
           [
             {
@@ -104,8 +104,15 @@ export default function SettingsScreen() {
               text: "Delete",
               style: "destructive",
               onPress: async () => {
-                // if (modelValue === selectedModel?.value) {setSelectedModel(null);}
-                await removeLocalModel(modelValue).then(() => refreshModels());
+                try {
+                    if (modelSlug === selectedModel?.slug) {
+                        setSelectedModel(null);
+                    }
+                    await cactusContext.lm?.destroy();
+                    refreshModels();
+                } catch (error: any) {
+                    Alert.alert('Delete Failed', error.message || 'Failed to delete model');
+                }
               }
             }
           ]
@@ -244,26 +251,26 @@ export default function SettingsScreen() {
                         )}
                         <YStack gap="$2">
                             {/* List of local models */}
-                            {availableModels.filter(model => model.isLocal).map(model => (
+                            {availableModels.map(model => (
                                 <ModelListItem
-                                    key={model.value}
-                                    modelName={model.value}
-                                    modelComment={modelsAvailableToDownload.find(m => extractModelNameFromUrl(m.downloadUrl) === model.value)?.comment}
+                                    key={model.slug}
+                                    modelName={model.name}
+                                    modelComment={`${(model.sizeMb / 1024).toFixed(2)} GB${model.supportsToolCalling ? ' • Tool Calling' : ''}${model.supportsVision ? ' • Vision' : ''}`}
                                     downloaded={true}
                                     downloadInProgress={false}
                                     onDownloadClick={() => {}}
-                                    onDeleteClick={() => handleDeleteModel(model.value)}
-                                    isSelected={selectedModel?.value === model.value}
+                                    onDeleteClick={() => handleDeleteModel(model.slug, model.name)}
+                                    isSelected={selectedModel?.slug === model.slug}
                                 />
                             ))}
-                            {modelsAvailableToDownload.filter(model => !availableModels.some(localModel => localModel.value === extractModelNameFromUrl(model.downloadUrl))).map((model) => (
+                            {modelsAvailableToDownload.map((model) => (
                                 <ModelListItem
-                                    key={model.downloadUrl}
-                                    modelName={`${model.name}`}
-                                    modelComment={model.comment}
+                                    key={model.slug}
+                                    modelName={model.name}
+                                    modelComment={`${(model.sizeMb / 1024).toFixed(2)} GB${model.supportsToolCalling ? ' • Tool Calling' : ''}${model.supportsVision ? ' • Vision' : ''}`}
                                     downloaded={false}
                                     downloadInProgress={false}
-                                    onDownloadClick={() => handleModelDownload(model.downloadUrl)}
+                                    onDownloadClick={() => handleModelDownload(model.slug, model.name, model.sizeMb)}
                                     onDeleteClick={() => {}}
                                 />
                             ))} 
@@ -277,12 +284,12 @@ export default function SettingsScreen() {
                                 paddingVertical="$2.5"
                                 paddingHorizontal="$3"
                             >
-                                <RegularText fontWeight="bold">Compatibility Note: </RegularText>
-                                <RegularText>You can experiment by downloading custom models below. For optimal performance, please use one of the recommended models above. </RegularText>
+                                {/* <RegularText fontWeight="bold">Compatibility Note: </RegularText>
+                                <RegularText>You can experiment by downloading custom models below. For optimal performance, please use one of the recommended models above. </RegularText> */}
                                 <Anchor fontSize="$3" fontWeight="300" textAlign="center" lineHeight={15} href="https://github.com/cactus-compute/cactus" target="_blank">Want to build your own app powered by local AI? Check out the Cactus repo!</Anchor>
                             </YStack>
                             {errorMessage && <RegularText color="$red10">{errorMessage}</RegularText>}
-                            <XStack 
+                            {/* <XStack 
                                 alignItems="center"
                                 borderColor="$gray6"
                                 borderWidth={1}
@@ -317,7 +324,7 @@ export default function SettingsScreen() {
                                     disabled={!modelUrl.trim() || downloadInProgress}
                                     opacity={downloadInProgress ? 0.6 : 1}
                                 />
-                            </XStack>
+                            </XStack> */}
                             {errorMessage && <RegularText color="$red10" marginTop="$2">{errorMessage}</RegularText>}
                         </YStack>
                     </YStack>

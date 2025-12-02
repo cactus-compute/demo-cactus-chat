@@ -33,7 +33,7 @@ export const ModelListItem: React.FC<ModelListItemProps> = ({
   const { setSelectedModel, availableModels, isContextLoading } = useModelContext()
 
   // Note: this is a REPULSIVE workaround to the fact that we're not passing in Model into here... DISGUSTING. FIX
-  const downloadedModel = availableModels.find(model => model.label === modelName)
+  const downloadedModel = availableModels.find(model => model.name === modelName)
 
   return (
     <XStack 

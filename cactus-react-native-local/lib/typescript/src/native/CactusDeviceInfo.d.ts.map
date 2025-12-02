@@ -1,0 +1,1 @@
+{"version":3,"file":"CactusDeviceInfo.d.ts","sourceRoot":"","sources":["../../../../src/native/CactusDeviceInfo.ts"],"names":[],"mappings":"AACA,OAAO,KAAK,EAEV,UAAU,EACX,MAAM,iCAAiC,CAAC;AAEzC,qBAAa,gBAAgB;IAC3B,OAAO,CAAC,MAAM,CAAC,QAAQ,CAAC,sBAAsB,CAC8B;WAE9D,gBAAgB,IAAI,OAAO,CAAC,MAAM,GAAG,SAAS,CAAC;WAI/C,aAAa,IAAI,OAAO,CAAC,UAAU,CAAC;CAGnD"}

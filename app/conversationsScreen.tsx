@@ -56,7 +56,7 @@ export default function SettingsScreen() {
                         >
                             <RegularText textAlign='left' fontWeight={600}>{conversation.title}</RegularText>
                             <XStack>
-                                <RegularText textAlign='left' flex={1}>{conversation.model.value}</RegularText>
+                                <RegularText textAlign='left' flex={1}>{conversation.model.name}</RegularText>
                                 <RegularText>{new Date(conversation.lastUpdated).toLocaleDateString()}</RegularText>
                             </XStack>
                         </YStack>

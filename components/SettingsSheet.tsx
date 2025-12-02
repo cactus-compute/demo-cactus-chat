@@ -1,16 +1,15 @@
-import { YStack, Button, Text, XStack, Slider, Tabs, Input, Progress, Switch } from 'tamagui'
+import { YStack, Button, Text, XStack, Slider, Tabs, Progress, Switch } from 'tamagui'
 import { Modal, View, TouchableWithoutFeedback, Animated, ScrollView, Alert } from 'react-native'
 import { useEffect, useRef, useState } from 'react'
-import { Check, Download, Trash } from '@tamagui/lucide-icons'
-import { deleteApiKey, removeLocalModel } from '@/services/storage'
-import { downloadModel, validateModelUrl } from '@/utils/modelUtils'
+import { Check, Trash } from '@tamagui/lucide-icons'
+import { deleteApiKey } from '@/services/storage'
 import { useModelContext } from '@/contexts/modelContext'
 import { ApiKeyDialog } from './ui/settings/ApiKeyDialog'
 import { Provider } from '@/services/models'
-import { extractModelNameFromUrl } from '@/utils/modelUtils'
 import { ModelListItem } from './ui/settings/ModelListItem'
 import { RegularText } from './ui/RegularText'
 import { PreferenceTile } from './ui/settings/PreferenceTile'
+import { CactusLM } from 'cactus-react-native'
 
 interface SettingsSheetProps {
   open: boolean
@@ -22,17 +21,28 @@ interface ExtendedProviderType {
   hasKey: boolean
 }
 
-export function SettingsSheet({ 
-  open, 
+export function SettingsSheet({
+  open,
   onOpenChange,
 }: SettingsSheetProps) {
-  // Model URL input state
-  const { availableModels, refreshModels, hasOpenAIKey, hasAnthropicKey, hasGeminiKey, tokenGenerationLimit, setTokenGenerationLimit, selectedModel, setSelectedModel, modelsAvailableToDownload } = useModelContext();
-  const [modelUrl, setModelUrl] = useState('');
-  const [downloadInProgress, setDownloadInProgress] = useState(false);
-  const [downloadProgress, setDownloadProgress] = useState(0);
-  const [errorMessage, setErrorMessage] = useState('');
+  const {
+    availableModels,
+    refreshModels,
+    hasOpenAIKey,
+    hasAnthropicKey,
+    hasGeminiKey,
+    tokenGenerationLimit,
+    setTokenGenerationLimit,
+    selectedModel,
+    setSelectedModel,
+    modelsAvailableToDownload,
+    cactusContext
+  } = useModelContext();
+
+  const [downloadingSlug, setDownloadingSlug] = useState<string | null>(null);
+  const [downloadProgress, setDownloadProgress] = useState<number>(0);
   const [apiKeyDialogProvider, setApiKeyDialogProvider] = useState<Provider | null>(null);
+
   // Fade-in animation for overlay
   const fadeAnim = useRef(new Animated.Value(0)).current;
   // Slide-up animation for the sheet
@@ -53,21 +63,10 @@ export function SettingsSheet({
     }
   ]
 
-  const handleModelDownload = async (urlOverride?: string) => {
-    setErrorMessage('');
-
-    const urlToDownload = urlOverride || modelUrl;
-    
-    // Validate URL
-    const { valid, reason, contentLength } = await validateModelUrl(urlToDownload);
-    if (!valid) {
-      setErrorMessage(reason || 'Invalid URL');
-      return;
-    }
-
+  const handleModelDownload = async (modelSlug: string, modelName: string, sizeMb: number) => {
     Alert.alert(
-      `Download ${extractModelNameFromUrl(urlToDownload)}`, 
-      `This will download ${contentLength ? (contentLength / 10e8).toFixed(2) + 'GB' : 'unknown size'} of data. We recommend doing this over WiFi.`,
+      `Download ${modelName}`,
+      `This will download ${(sizeMb / 1024).toFixed(2)} GB of data. We recommend doing this over WiFi.`,
       [
         {
           text: "Cancel",
@@ -78,14 +77,24 @@ export function SettingsSheet({
           style: "default",
           onPress: async () => {
             try {
-              setDownloadInProgress(true);
-              await downloadModel(urlToDownload, setDownloadProgress);
-              setModelUrl('');
+              setDownloadingSlug(modelSlug);
+              setDownloadProgress(0);
+
+              // Create a new CactusLM instance specifically for downloading this model
+              const downloadLM = new CactusLM({ model: modelSlug, contextSize: 2048 });
+
+              // Download the model
+              await downloadLM.download({
+                onProgress: (progress) => {
+                  setDownloadProgress(Math.round(progress * 100));
+                }
+              });
+
               refreshModels();
             } catch (error: any) {
-              setErrorMessage(error.message || 'Download failed');
+              Alert.alert('Download Failed', error.message || 'Failed to download model');
             } finally {
-              setDownloadInProgress(false);
+              setDownloadingSlug(null);
               setDownloadProgress(0);
             }
           }
@@ -114,9 +123,9 @@ export function SettingsSheet({
     );
   };
 
-  const handleDeleteModel = (modelValue: string) => {
+  const handleDeleteModel = async (modelSlug: string, modelName: string) => {
     Alert.alert(
-      `Delete ${modelValue}`, 
+      `Delete ${modelName}`,
       `Are you sure you want to delete this model? This cannot be undone. You will need to download the model again to use it.`,
       [
         {
@@ -127,8 +136,15 @@ export function SettingsSheet({
           text: "Delete",
           style: "destructive",
           onPress: async () => {
-            if (modelValue === selectedModel?.value) {setSelectedModel(null);}
-            await removeLocalModel(modelValue).then(() => refreshModels());
+            try {
+              if (modelSlug === selectedModel?.slug) {
+                setSelectedModel(null);
+              }
+              await cactusContext.lm?.destroy();
+              refreshModels();
+            } catch (error: any) {
+              Alert.alert('Delete Failed', error.message || 'Failed to delete model');
+            }
           }
         }
       ]
@@ -255,52 +271,33 @@ export function SettingsSheet({
               <Tabs.Content value="local" paddingTop={16}>
                 <ScrollView showsVerticalScrollIndicator={false}>
 
-                  <XStack alignItems="center" marginBottom="$3">
-                    <Input 
-                      flex={1}
-                      size="$4"
-                      placeholder="Custom HuggingFace GGUF URL" 
-                      value={modelUrl}
-                      opacity={downloadInProgress ? 0.6 : 1}
-                      disabled={downloadInProgress}
-                      onChangeText={text => {
-                          setModelUrl(text);
-                          setErrorMessage('');
-                      }}
-                    />
-                    <Button
-                      marginLeft={8}
-                      size="$4"
-                      icon={Download}
-                      onPress={() => handleModelDownload()}
-                      disabled={!modelUrl.trim() || downloadInProgress}
-                      opacity={downloadInProgress ? 0.6 : 1}
-                    />
-                  </XStack>
+                  <Text fontSize={14} fontWeight="300" textAlign="center" marginBottom={16}>
+                    Download models to use offline. Models are managed by Cactus Compute.
+                  </Text>
 
-                  {/* recommended models section */}
-                  {modelsAvailableToDownload.filter(model => !availableModels.some(localModel => localModel.value === extractModelNameFromUrl(model.downloadUrl))).map((model) => (
+                  {/* Available models to download */}
+                  {modelsAvailableToDownload.map((model) => (
                     <ModelListItem
-                      key={model.downloadUrl}
-                      modelName={`${model.name}`}
-                      modelComment={model.comment}
+                      key={model.slug}
+                      modelName={model.name}
+                      modelComment={`${(model.sizeMb / 1024).toFixed(2)} GB${model.supportsToolCalling ? ' • Tool Calling' : ''}${model.supportsVision ? ' • Vision' : ''}`}
                       downloaded={false}
-                      downloadInProgress={downloadInProgress}
-                      onDownloadClick={() => handleModelDownload(model.downloadUrl)}
-                      onDeleteClick={() => handleDeleteModel(extractModelNameFromUrl(model.downloadUrl) || '')}
+                      downloadInProgress={downloadingSlug === model.slug}
+                      onDownloadClick={() => handleModelDownload(model.slug, model.name, model.sizeMb)}
+                      onDeleteClick={() => {}}
                     />
-                  ))} 
-                  
-                  {/* List of local models */}
-                  {availableModels.filter(model => model.isLocal).map(model => (
+                  ))}
+
+                  {/* Downloaded models */}
+                  {availableModels.map(model => (
                     <ModelListItem
-                      key={model.value}
-                      modelName={model.value}
-                      modelComment={modelsAvailableToDownload.find(m => extractModelNameFromUrl(m.downloadUrl) === model.value)?.comment}
+                      key={model.slug}
+                      modelName={model.name}
+                      modelComment={`${(model.sizeMb / 1024).toFixed(2)} GB${model.supportsToolCalling ? ' • Tool Calling' : ''}${model.supportsVision ? ' • Vision' : ''}`}
                       downloaded={true}
-                      downloadInProgress={downloadInProgress}
-                      onDownloadClick={() => handleModelDownload()}
-                      onDeleteClick={() => handleDeleteModel(model.value)}
+                      downloadInProgress={false}
+                      onDownloadClick={() => {}}
+                      onDeleteClick={() => handleDeleteModel(model.slug, model.name)}
                     />
                   ))}
 
@@ -351,10 +348,10 @@ export function SettingsSheet({
 
             <View style={{ flex: 1 }} />
 
-            {!downloadInProgress && (
+            {downloadingSlug && (
               <YStack gap="$2">
                   <Text fontSize={12} textAlign="center">
-                      Downloading model... {Math.round(downloadProgress)}%
+                      Downloading model... {downloadProgress}%
                   </Text>
                   <Progress value={downloadProgress} max={100} width="100%" height={8}>
                       <Progress.Indicator animation="bouncy" backgroundColor="$green10" />

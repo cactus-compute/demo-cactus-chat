@@ -1,101 +1,89 @@
 import OnboardingScreenLayout from '@/components/ui/onboarding/OnboardingScreenLayout';
 import { Text, YStack, Progress, Button, View, Anchor } from 'tamagui';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
-import { CactusFunctionalitySelection } from './functionalitySelectionScreen';
-import * as FileSystem from 'expo-file-system';
-import { Check, ShieldQuestion } from '@tamagui/lucide-icons';
+import { useEffect, useState } from 'react';
 import { PageHeader } from '@/components/ui/PageHeader';
-import { Model } from '@/services/models';
-import { storeLocalModel } from '@/services/storage';
 import { useModelContext } from '@/contexts/modelContext';
 import { RegularText } from '@/components/ui/RegularText';
+import { setOnboardingComplete } from '@/services/storage';
+import { CactusLM } from 'cactus-react-native';
 
 export default function FunctionalityDownloadScreen() {
-    const { functionalitySelectionsString } = useLocalSearchParams()
-    const functionalitySelections = JSON.parse(functionalitySelectionsString as string) as CactusFunctionalitySelection[]
+    const { modelSlug } = useLocalSearchParams();
 
-    const [downloads, setDownloads] = useState<{[key: string]: number}>({});
-    const downloadCountRef = useRef(0);
-    const [overallProgress, setOverallProgress] = useState(0);
+    const [downloadProgress, setDownloadProgress] = useState(0);
     const [isComplete, setIsComplete] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
-    const { refreshModels, setSelectedModel } = useModelContext();
-    
-    const allDownloads = functionalitySelections.flatMap(selection => selection.urls.map(url => ({
-        url,
-        folderName: selection.folderName, // this is basically type: chat | media | voice
-        filename: url.split('/').pop() || 'file',
-        modelName: selection.modelName
-        }))
-    );
-    
-    const totalDownloads = allDownloads.length;
+    const { refreshModels, setSelectedModel, availableModels, cactusContext } = useModelContext();
 
     useEffect(() => {
-        console.log(FileSystem.documentDirectory)
-        const downloadTasks: FileSystem.DownloadResumable[] = [];
-        
-        allDownloads.forEach(async ({ url, filename, folderName, modelName }) => {
-            const dirPath = `${FileSystem.documentDirectory}${folderName}`;
-            await FileSystem.makeDirectoryAsync(dirPath, { intermediates: true })
-            const downloadPath = `${dirPath}/${filename}`;
-          
-            const task = FileSystem.createDownloadResumable(
-                url,
-                downloadPath,
-                {},
-                (progress) => {
-                  const progressValue = progress.totalBytesWritten / progress.totalBytesExpectedToWrite;
-                  setDownloads(prev => {
-                    const newDownloads = { ...prev, [url]: progressValue };
-                    const total = Object.values(newDownloads).reduce((sum, p) => sum + p, 0) / totalDownloads;
-                    // setOverallProgress(total * 100);
-                    setOverallProgress(parseFloat((total * 100).toFixed(2)));
-                    return newDownloads;
-                  });
-                }
-            );
+        const downloadModel = async () => {
+            try {
+                if (!modelSlug) {
+                    // If no specific model selected, use default
+                    const slug = 'qwen3-0.6'; // Default model
 
-            downloadTasks.push(task);
-            task.downloadAsync().then((result) => {
-                if (result) {
-                    downloadCountRef.current += 1;
-                    console.log(`Downloaded ${url} | ${downloadCountRef.current} / ${totalDownloads}`);
-                    const model: Model = {
-                        value: modelName,
-                        label: modelName,
-                        provider: 'Cactus',
-                        disabled: false,
-                        isLocal: true,
-                        meta: { fileName: filename }
-                    };
-                    storeLocalModel(model);
-                    if (downloadCountRef.current === totalDownloads) {
-                        setIsComplete(true);
-                        refreshModels();
-                        setSelectedModel(model);
+                    // Create a new CactusLM instance specifically for downloading this model
+                    const downloadLM = new CactusLM({ model: slug, contextSize: 2048 });
+
+                    // Download the model
+                    await downloadLM.download({
+                        onProgress: (progress) => {
+                            setDownloadProgress(Math.round(progress * 100));
+                        }
+                    });
+
+                    await refreshModels();
+
+                    // Select the downloaded model
+                    const models = await cactusContext.lm?.getModels();
+                    const downloadedModel = models?.find(m => m.slug === slug);
+                    if (downloadedModel) {
+                        setSelectedModel(downloadedModel);
                     }
+
+                    await setOnboardingComplete(true);
+                    setIsComplete(true);
+                } else {
+                    // Download specific model slug
+                    // Create a new CactusLM instance specifically for downloading this model
+                    const downloadLM = new CactusLM({ model: modelSlug as string, contextSize: 2048 });
+
+                    // Download the model
+                    await downloadLM.download({
+                        onProgress: (progress) => {
+                            setDownloadProgress(Math.round(progress * 100));
+                        }
+                    });
+
+                    await refreshModels();
+
+                    const models = await cactusContext.lm?.getModels();
+                    const downloadedModel = models?.find(m => m.slug === modelSlug);
+                    if (downloadedModel) {
+                        setSelectedModel(downloadedModel);
+                    }
+
+                    await setOnboardingComplete(true);
+                    setIsComplete(true);
                 }
-            }).catch(error => {
-                console.error(`Error downloading ${url}:`, error);
-            });
-        });
-        
-        return () => { // Cancel downloads if component unmounts
-          downloadTasks.forEach(task => {
-            task.cancelAsync();
-          });
+            } catch (err: any) {
+                console.error('Download error:', err);
+                setError(err.message || 'Download failed');
+            }
         };
+
+        downloadModel();
     }, []);
 
     return (
         <OnboardingScreenLayout>
             <View width="90%">
-            <PageHeader
-                title={isComplete ? 'Download complete  ✓' : 'Downloading models...'}
-                subtitle={`Cactus stores and runs all your AI models locally. This means your data never leaves your device, ensuring complete privacy.`}
-            />
+                <PageHeader
+                    title={error ? 'Download Failed' : isComplete ? 'Download complete ✓' : 'Downloading model...'}
+                    subtitle={`Cactus stores and runs all your AI models locally. This means your data never leaves your device, ensuring complete privacy.`}
+                />
             </View>
             <YStack flex={1} alignItems='center' justifyContent='center' marginBottom="$8" gap="$2">
                 <View width="90%" alignItems='center' gap="$2">
@@ -105,21 +93,28 @@ export default function FunctionalityDownloadScreen() {
                     <Anchor fontSize="$3" fontWeight="300" href="https://github.com/cactus-compute/cactus" target="_blank">Check out the repo</Anchor>
                 </View>
             </YStack>
-            {isComplete ? (
+            {error ? (
+                <YStack width="100%" gap="$2">
+                    <RegularText color="$red10">{error}</RegularText>
+                    <Button onPress={() => router.back()} width="100%">
+                        <Text fontSize="$4" fontWeight="400">Go Back</Text>
+                    </Button>
+                </YStack>
+            ) : isComplete ? (
                 <Button onPress={() => router.push('/')} width="100%" backgroundColor="#000">
                     <Text fontSize="$4" fontWeight="400" color="#FFF">Get Started</Text>
                 </Button>
             ) : (
-                <YStack width="100%">
-                    {/* <Progress value={overallProgress} max={100} width="100%"> */}
-                    <Progress value={Math.round(overallProgress)} max={100} width="100%">
+                <YStack width="100%" gap="$2">
+                    <Progress value={downloadProgress} max={100} width="100%">
                         <Progress.Indicator animation="bouncy" backgroundColor="$green10" />
                     </Progress>
+                    <RegularText textAlign="center">{downloadProgress}%</RegularText>
                     <Button onPress={() => router.back()}>
-                        <Text fontSize="$3" fontWeight="300">Cancel download</Text>
+                        <Text fontSize="$3" fontWeight="300">Cancel</Text>
                     </Button>
                 </YStack>
             )}
         </OnboardingScreenLayout>
-    )
+    );
 }

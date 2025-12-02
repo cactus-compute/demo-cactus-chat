@@ -1,6 +1,6 @@
 import { XStack, YStack, Text, View } from 'tamagui';
 import { ModelMetrics } from '@/utils/modelMetrics';
-import { Model } from '@/services/models';
+import { CactusModel } from '@/services/models';
 import Markdown from 'react-native-markdown-display';
 import { generateUniqueId } from '@/services/chat/llama-local';
 import { Copy } from '@tamagui/lucide-icons';
@@ -16,7 +16,7 @@ export interface Message {
   id: string;
   isUser: boolean;
   text: string;
-  model: Model;
+  model: CactusModel;
   metrics?: ModelMetrics;
 }
 
@@ -24,11 +24,11 @@ interface ChatMessageProps {
   message: Message;
 }
 
-export const createUserMessage = (messageText: string, model: Model): Message => {
+export const createUserMessage = (messageText: string, model: CactusModel): Message => {
   return { id: generateUniqueId(), isUser: true, text: messageText, model: model };
 }
 
-export const createAIMessage = (messageText: string, model: Model, metrics?: ModelMetrics): Message => {
+export const createAIMessage = (messageText: string, model: CactusModel, metrics?: ModelMetrics): Message => {
   return { id: generateUniqueId(), isUser: false, text: messageText, model: model, metrics: metrics };
 } 
 
@@ -75,10 +75,10 @@ export function ChatMessage({ message }: ChatMessageProps) {
         elevation={0.2}
         maxWidth="85%"
       >
-        {!isUser && model?.label && (
+        {!isUser && model?.name && (
           <YStack marginBottom="$2">
             <Text color="$gray10" fontSize={12} opacity={0.7} fontWeight={300}>
-              {model.label}
+              {model.name}
             </Text>
           </YStack>
         )}

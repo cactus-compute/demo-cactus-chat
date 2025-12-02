@@ -1,41 +1,36 @@
 import { createContext, useEffect, useState, useContext, useRef } from 'react';
-import { Platform } from 'react-native';
-import { 
-  Model, 
-  InferenceHardware,
-  fetchModelsAvailableToDownload, 
-  ModelAvailableToDownload 
+import {
+  CactusModel,
+  InferenceHardware
 } from '@/services/models';
-import { 
-  getLocalModels,
-  saveTokenGenerationLimit, 
-  getTokenGenerationLimit, 
+import {
+  saveTokenGenerationLimit,
+  getTokenGenerationLimit,
   saveLastUsedModel,
-  getLastUsedModel, 
-  getInferenceHardware, 
-  saveInferenceHardware, 
-  getIsReasoningEnabled, 
+  getLastUsedModel,
+  getInferenceHardware,
+  saveInferenceHardware,
+  getIsReasoningEnabled,
   saveIsReasoningEnabled,
-  getFullModelPath,
   getSystemPrompt,
   saveSystemPrompt
 } from '@/services/storage';
-import { releaseAllLlama, CactusLM } from 'cactus-react-native';
+import { useCactusLM } from 'cactus-react-native';
 import { logModelLoadDiagnostics } from '@/services/diagnostics';
 import { generateUniqueId } from '@/services/chat/llama-local';
 
 interface LoadedContext {
-  lm: CactusLM | null,
-  model: Model | null,
+  lm: ReturnType<typeof useCactusLM> | null,
+  model: CactusModel | null,
   inferenceHardware: InferenceHardware[]
 }
 
 interface ModelContextType {
     cactusContext: LoadedContext;
     isContextLoading: boolean;
-    availableModels: Model[];
-    selectedModel: Model | null;
-    setSelectedModel: (model: Model | null) => void;
+    availableModels: CactusModel[];
+    selectedModel: CactusModel | null;
+    setSelectedModel: (model: CactusModel | null) => void;
     refreshModels: () => void;
     tokenGenerationLimit: number;
     setTokenGenerationLimit: (limit: number) => void;
@@ -45,9 +40,12 @@ interface ModelContextType {
     setIsReasoningEnabled: (enabled: boolean) => void;
     conversationId: string;
     setConversationId: (id: string) => void;
-    modelsAvailableToDownload: ModelAvailableToDownload[];
+    modelsAvailableToDownload: CactusModel[];
     systemPrompt: string;
     setSystemPrompt: (prompt: string) => void;
+    hasOpenAIKey: boolean;
+    hasAnthropicKey: boolean;
+    hasGeminiKey: boolean;
 }
 
 const ModelContext = createContext<ModelContextType>({
@@ -68,136 +66,130 @@ const ModelContext = createContext<ModelContextType>({
     modelsAvailableToDownload: [],
     systemPrompt: '',
     setSystemPrompt: () => {},
+    hasOpenAIKey: false,
+    hasAnthropicKey: false,
+    hasGeminiKey: false,
 });
 
 export const ModelProvider = ({ children }: { children: React.ReactNode }) => {
-  const [availableModels, setAvailableModels] = useState<Model[]>([]);
-  const [selectedModel, setSelectedModel] = useState<Model | null>(null);
-  const [modelsVersion, setModelsVersion] = useState<number>(0);
+  // App-specific state
+  const [availableModels, setAvailableModels] = useState<CactusModel[]>([]);
+  const [modelsAvailableToDownload, setModelsAvailableToDownload] = useState<CactusModel[]>([]);
+  const [selectedModel, setSelectedModel] = useState<CactusModel | null>(null);
+
+  // Use the hook for CactusLM management (with selected model)
+  const cactusLM = useCactusLM({
+    model: selectedModel?.slug,
+    contextSize: 2048
+  });
   const [tokenGenerationLimit, setTokenGenerationLimit] = useState<number>(1000);
   const [inferenceHardware, setInferenceHardware] = useState<InferenceHardware[]>(['cpu']);
-  const [cactusContext, setCactusContext] = useState<LoadedContext>({lm: null, model: null, inferenceHardware: []});
-  const [isContextLoading, setIsContextLoading] = useState<boolean>(false);
   const [isReasoningEnabled, setIsReasoningEnabled] = useState<boolean>(true);
-  const [conversationId, setConversationId] = useState<string>(generateUniqueId())
-  const [modelsAvailableToDownload, setModelsAvailableToDownload] = useState<ModelAvailableToDownload[]>([]);
+  const [conversationId, setConversationId] = useState<string>(generateUniqueId());
   const [systemPrompt, setSystemPrompt] = useState<string>('');
+  const [hasOpenAIKey, setHasOpenAIKey] = useState<boolean>(false);
+  const [hasAnthropicKey, setHasAnthropicKey] = useState<boolean>(false);
+  const [hasGeminiKey, setHasGeminiKey] = useState<boolean>(false);
 
-  const reloadLock = useRef(false);
+  const [modelsRefreshTrigger, setModelsRefreshTrigger] = useState<number>(0);
 
   function refreshModels() {
-    setModelsVersion(modelsVersion + 1);
+    setModelsRefreshTrigger(prev => prev + 1);
   }
 
-  useEffect(() => { // on initial load
-    getTokenGenerationLimit().then((limit) => {
-      setTokenGenerationLimit(limit);
-    });
-    getInferenceHardware().then((hardware) => {
-      setInferenceHardware(hardware)
-    });
-    getIsReasoningEnabled().then((enabled) => {
-      setIsReasoningEnabled(enabled)
-    })
-    getLocalModels().then((availableModels) => {
-      setAvailableModels(availableModels);
-      getLastUsedModel().then((lastUsedModel) => {
-        setSelectedModel(availableModels.find(m => m.value === lastUsedModel) || availableModels[0]);
-      });
-    });
-    getSystemPrompt().then((prompt) => {
-      setSystemPrompt(prompt);
-    });
-    fetchModelsAvailableToDownload().then((models) => {
-      setModelsAvailableToDownload(models);
-    });
+  // Load app settings on mount
+  useEffect(() => {
+    getTokenGenerationLimit().then(setTokenGenerationLimit);
+    getInferenceHardware().then(setInferenceHardware);
+    getIsReasoningEnabled().then(setIsReasoningEnabled);
+    getSystemPrompt().then(setSystemPrompt);
   }, []);
 
+  // Save app settings when they change
   useEffect(() => {
     saveTokenGenerationLimit(tokenGenerationLimit);
   }, [tokenGenerationLimit]);
 
   useEffect(() => {
-    saveInferenceHardware(inferenceHardware)
-  }, [inferenceHardware])
+    saveInferenceHardware(inferenceHardware);
+  }, [inferenceHardware]);
 
   useEffect(() => {
-    saveIsReasoningEnabled(isReasoningEnabled)
-  }, [isReasoningEnabled])
+    saveIsReasoningEnabled(isReasoningEnabled);
+  }, [isReasoningEnabled]);
 
   useEffect(() => {
-    saveSystemPrompt(systemPrompt)
-  }, [systemPrompt])
+    saveSystemPrompt(systemPrompt);
+  }, [systemPrompt]);
 
+  // Fetch models from SDK
   useEffect(() => {
-    getLocalModels().then((models) => {
-      setAvailableModels(models);
-    });
-  }, [modelsVersion])
+    const fetchModels = async () => {
+      try {
+        const models = await cactusLM.getModels();
+        const downloaded = models.filter(m => m.isDownloaded);
+        const notDownloaded = models.filter(m => !m.isDownloaded);
 
-  useEffect(() => {
-    const reloadModelContext = async () => {
-      if (selectedModel && !reloadLock.current){
-        console.log('inside the function')
-        setIsContextLoading(true);
-        reloadLock.current = true;
-        if (Platform.OS === 'ios'){
-          await releaseAllLlama();
-          console.log('released all llama')
-        } else console.log('skipping llama release on Android')
-        const modelPath = getFullModelPath(selectedModel.meta?.fileName || '');
-        console.log(`Full model path: ${modelPath}`)
-        const gpuLayers = Platform.OS === 'ios' && inferenceHardware.includes('gpu') ? 99 : 0
-        const startTime = performance.now();
-        const { lm, error } = await CactusLM.init({
-          model: modelPath,
-          use_mlock: true,
-          n_ctx: 2048,
-          n_batch: 32,   
-          n_gpu_layers: gpuLayers,
-          // n_threads: 4,        
-        });
-        if (error) console.log('error', error)
-        console.log('initialized llama')
-        const endTime = performance.now();
-        logModelLoadDiagnostics({model: selectedModel.value, loadTime: endTime - startTime});
-        setCactusContext({
-          lm: lm,
-          model: selectedModel,
-          inferenceHardware: inferenceHardware
-        })
-        setIsContextLoading(false)
-        saveLastUsedModel(selectedModel.value);
-        reloadLock.current = false;
+        setAvailableModels(downloaded);
+        setModelsAvailableToDownload(notDownloaded);
+
+        // Select last used model or first available
+        if (downloaded.length > 0 && !selectedModel) {
+          const lastUsedSlug = await getLastUsedModel();
+          const modelToSelect = downloaded.find(m => m.slug === lastUsedSlug) || downloaded[0];
+          setSelectedModel(modelToSelect);
+        }
+      } catch (error) {
+        console.error('Failed to fetch models:', error);
       }
+    };
+
+    fetchModels();
+  }, [modelsRefreshTrigger]);
+
+  // Save last used model when selection changes
+  useEffect(() => {
+    if (selectedModel) {
+      saveLastUsedModel(selectedModel.slug);
+      console.log(`Model selected: ${selectedModel.slug}`);
     }
-    reloadModelContext()
-    console.log('triggering reload of context!')
-  }, [selectedModel, inferenceHardware])
+  }, [selectedModel])
+
+  // Construct context value
+  const cactusContext: LoadedContext = {
+    lm: cactusLM,
+    model: selectedModel,
+    inferenceHardware
+  };
+
+  const isContextLoading = cactusLM.isInitializing || cactusLM.isDownloading;
 
   return (
-  <ModelContext.Provider value={{ 
-    cactusContext,
-    isContextLoading,
-    availableModels, 
-    selectedModel, 
-    setSelectedModel, 
-    refreshModels, 
-    tokenGenerationLimit, 
-    setTokenGenerationLimit, 
-    inferenceHardware, 
-    setInferenceHardware, 
-    isReasoningEnabled, 
-    setIsReasoningEnabled, 
-    conversationId,
-    setConversationId,
-    modelsAvailableToDownload,
-    systemPrompt,
-    setSystemPrompt
-  }}>
-    {children}
-  </ModelContext.Provider>
-  )
+    <ModelContext.Provider value={{
+      cactusContext,
+      isContextLoading,
+      availableModels,
+      selectedModel,
+      setSelectedModel,
+      refreshModels,
+      tokenGenerationLimit,
+      setTokenGenerationLimit,
+      inferenceHardware,
+      setInferenceHardware,
+      isReasoningEnabled,
+      setIsReasoningEnabled,
+      conversationId,
+      setConversationId,
+      modelsAvailableToDownload,
+      systemPrompt,
+      setSystemPrompt,
+      hasOpenAIKey,
+      hasAnthropicKey,
+      hasGeminiKey,
+    }}>
+      {children}
+    </ModelContext.Provider>
+  );
 };
 
 export const useModelContext = () => {

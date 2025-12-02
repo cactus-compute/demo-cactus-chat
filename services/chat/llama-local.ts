@@ -1,7 +1,7 @@
 import { Message } from '@/components/ui/chat/ChatMessage';
 import { ModelMetrics } from '@/utils/modelMetrics';
-import { Model } from '../models';
-import { CactusLM } from 'cactus-react-native';
+import { CactusModel } from '../models';
+import { useCactusLM } from 'cactus-react-native';
 // import * as Haptics from 'expo-haptics';
 
 export interface ChatProgressCallback {
@@ -9,13 +9,13 @@ export interface ChatProgressCallback {
 }
 
 export interface ChatCompleteCallback {
-  (metrics: ModelMetrics, model: Model, completeMessage: string): void;
+  (metrics: ModelMetrics, model: CactusModel, completeMessage: string): void;
 }
 
 export async function streamLlamaCompletion(
-  lm: CactusLM | null,
+  lm: ReturnType<typeof useCactusLM> | null,
   messages: Message[],
-  model: Model,
+  model: CactusModel,
   onProgress: ChatProgressCallback,
   onComplete: ChatCompleteCallback,
   streaming: boolean = true,
@@ -31,27 +31,27 @@ export async function streamLlamaCompletion(
     }
     console.log('Llama context initialized', new Date().toISOString());
     
-    const stopWords = ['</s>', '<|end|>', '<|eot_id|>', '<|end_of_text|>', 
-                       '<|im_end|>', '<|EOT|>', '<|END_OF_TURN_TOKEN|>', 
+    const stopWords = ['</s>', '<|end|>', '<|eot_id|>', '<|end_of_text|>',
+                       '<|im_end|>', '<|EOT|>', '<|END_OF_TURN_TOKEN|>',
                        '<|end_of_turn|>', '<|endoftext|>', '<end_of_turn>', '<|end_of_sentence|>'];
-    
+
     const voiceModePromptAddition = voiceMode ? 'Keep your messages VERY short. One-two sentences max.' : '';
 
     const formattedMessages = [
       {
-        role: 'system',
+        role: 'system' as const,
         content: `${systemPrompt} ${voiceModePromptAddition}`
       },
       ...messages.map(msg => ({
-        role: msg.isUser ? 'user' : 'assistant',
+        role: (msg.isUser ? 'user' : 'assistant') as 'user' | 'assistant',
         content: msg.text
       }))
     ];
-    
+
     const startTime = performance.now();
     let firstTokenTime: number | null = null;
     let responseText = '';
-    
+
     let modelMetrics: ModelMetrics = {
       timeToFirstToken: 0,
       completionTokens: 0,
@@ -59,44 +59,42 @@ export async function streamLlamaCompletion(
     };
 
     console.log('Beginning completion with the system prompt:', systemPrompt);
-    
+
     if (streaming) {
-      const result = await lm.completion(
-        formattedMessages,
-        {
-          n_predict: maxTokens,
-          stop: stopWords,
+      const result = await lm.complete({
+        messages: formattedMessages,
+        options: {
+          maxTokens: maxTokens,
+          stopSequences: stopWords,
         },
-        (data: any) => {
-          if (data.token) {
-            if (!firstTokenTime) {
-              firstTokenTime = performance.now();
-              modelMetrics.timeToFirstToken = firstTokenTime - startTime;
-            }
-            responseText += data.token;
-            // if(!voiceMode) {
-            //   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
-            // }
-            onProgress(responseText);
+        onToken: (token: string) => {
+          if (!firstTokenTime) {
+            firstTokenTime = performance.now();
+            modelMetrics.timeToFirstToken = firstTokenTime - startTime;
           }
+          responseText += token;
+          // if(!voiceMode) {
+          //   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+          // }
+          onProgress(token);
         }
-      );
-      
-      modelMetrics.completionTokens = result.timings?.predicted_n
-      modelMetrics.tokensPerSecond = result.timings?.predicted_per_second
+      });
+
+      modelMetrics.completionTokens = result.totalTokens || 0;
+      modelMetrics.tokensPerSecond = result.tokensPerSecond || 0;
       onComplete(modelMetrics, model, responseText);
     } else {
-      const result = await lm.completion(
-        formattedMessages,
-        {
-          n_predict: 1024,
-          stop: stopWords,
+      const result = await lm.complete({
+        messages: formattedMessages,
+        options: {
+          maxTokens: 1024,
+          stopSequences: stopWords,
         }
-      );
-      
-      responseText = result.text;
-      modelMetrics.completionTokens = result.timings?.predicted_n
-      modelMetrics.tokensPerSecond = result.timings?.predicted_per_second
+      });
+
+      responseText = result.response || '';
+      modelMetrics.completionTokens = result.totalTokens || 0;
+      modelMetrics.tokensPerSecond = result.tokensPerSecond || 0;
       onProgress(responseText);
       onComplete(modelMetrics, model, responseText);
     }
@@ -109,7 +107,7 @@ export async function streamLlamaCompletion(
 /**
  * Generates message metadata for tracking and storage
  */
-export function createMessageMetadata(isUser: boolean, model: Model): Pick<Message, 'id' | 'isUser' | 'model'> {
+export function createMessageMetadata(isUser: boolean, model: CactusModel): Pick<Message, 'id' | 'isUser' | 'model'> {
   return {
     id: generateUniqueId(),
     isUser,

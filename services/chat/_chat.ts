@@ -3,7 +3,7 @@ import { streamAnthropicCompletion } from './anthropic';
 import { streamGeminiCompletion } from './gemini';
 import { streamLlamaCompletion } from './llama-local';
 import { Message } from '@/components/ui/chat/ChatMessage';
-import { Model } from '../models';
+import { CactusModel } from '../models';
 import { ModelMetrics } from '@/utils/modelMetrics';
 
 export interface ChatProgressCallback {
@@ -11,7 +11,7 @@ export interface ChatProgressCallback {
 }
 
 export interface ChatCompleteCallback {
-  (metrics: ModelMetrics, model: Model, completeMessage: string): void;
+  (metrics: ModelMetrics, model: CactusModel, completeMessage: string): void;
 }
 
 export interface ChatOptions {
@@ -25,7 +25,7 @@ export interface ChatOptions {
  */
 export async function sendChatMessage(
   messages: Message[],
-  model: Model,
+  model: CactusModel,
   onProgress: ChatProgressCallback,
   onComplete: ChatCompleteCallback,
   options: ChatOptions = { streaming: true, voiceMode: false },
@@ -78,7 +78,7 @@ export async function sendChatMessage(
       //   throw new Error(`Unknown provider: ${model.provider}`);
     // }
   } catch (error) {
-    console.error(`Chat service error with ${model.provider}:`, error);
+    console.error(`Chat service error with ${model.name}:`, error);
     throw error;
   }
 }
@@ -86,7 +86,7 @@ export async function sendChatMessage(
 /**
  * Generates message metadata for tracking and storage
  */
-export function createMessageMetadata(isUser: boolean, model: Model): Pick<Message, 'id' | 'isUser' | 'model'> {
+export function createMessageMetadata(isUser: boolean, model: CactusModel): Pick<Message, 'id' | 'isUser' | 'model'> {
   return {
     id: generateUniqueId(),
     isUser,

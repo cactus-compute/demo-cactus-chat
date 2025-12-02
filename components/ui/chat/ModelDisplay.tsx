@@ -20,11 +20,11 @@ export function ModelDisplay() {
     )
   }
 
-  if (!availableModels.filter(model => !model.disabled).length) {
+  if (!availableModels.filter(model => model.isDownloaded).length) {
     return <ModelDisplayPlaceholder />
   }
 
   return (
-    <RegularText fontSize="$4" fontWeight={600} color={isContextLoading ? '$gray8' : '$black'}>{selectedModel?.value}</RegularText>
+    <RegularText fontSize="$4" fontWeight={600} color={isContextLoading ? '$gray8' : '$black'}>{selectedModel?.name}</RegularText>
   );
 } 

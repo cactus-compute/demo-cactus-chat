@@ -3,11 +3,11 @@ import { Message } from '@/components/ui/chat/ChatMessage';
 import { ModelMetrics } from '@/utils/modelMetrics';
 import EventSource from 'react-native-sse';
 import { ChatCompleteCallback, ChatProgressCallback } from './chat';
-import { Model } from '../models';
+import { CactusModel } from '../models';
 
 export async function streamGeminiCompletion(
   messages: Message[],
-  model: Model,
+  model: CactusModel,
   onProgress: ChatProgressCallback,
   onComplete: ChatCompleteCallback,
   streaming: boolean = true,
@@ -43,7 +43,7 @@ export async function streamGeminiCompletion(
       }
 
       // We've already checked apiKey is not null above
-      const url = new URL(`https://generativelanguage.googleapis.com/v1beta/models/${model.value}:streamGenerateContent?key=${apiKey}`);
+      const url = new URL(`https://generativelanguage.googleapis.com/v1beta/models/${model.slug}:streamGenerateContent?key=${apiKey}`);
       url.searchParams.append('alt', 'sse');
       
       const es = new EventSource(url.toString(), {
