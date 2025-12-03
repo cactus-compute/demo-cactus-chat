@@ -1,24 +1,55 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import React from 'react';
+import { StyleSheet } from 'react-native';
 import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { KeyboardProvider } from "react-native-keyboard-controller";
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import { useColorScheme } from '@/hooks/use-color-scheme';
-
-export const unstable_settings = {
-  anchor: '(tabs)',
-};
+import { CactusLMProvider } from '../contexts/CactusLMContext';
+import { colors, typography } from '../constants/theme';
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
-
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+    <SafeAreaProvider>
+      <GestureHandlerRootView style={styles.container}>
+        <KeyboardProvider>
+          <CactusLMProvider>
+            <Stack
+              screenOptions={{
+                headerStyle: {
+                  backgroundColor: colors.background,
+                },
+                headerTintColor: colors.textPrimary,
+                headerTitleStyle: {
+                  ...typography.headingSmall,
+                },
+                headerShadowVisible: true,
+              }}
+            >
+              <Stack.Screen
+                name="(drawer)"
+                options={{
+                  headerShown: false,
+                }}
+              />
+              <Stack.Screen
+                name="settings"
+                options={{
+                  title: 'Settings',
+                  presentation: 'card',
+                  headerBackTitle: 'Chat',
+                }}
+              />
+            </Stack>
+          </CactusLMProvider>
+        </KeyboardProvider>
+      </GestureHandlerRootView>
+    </SafeAreaProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+});
