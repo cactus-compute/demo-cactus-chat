@@ -10,7 +10,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Trash, Download } from 'lucide-react-native';
 import { CactusLM, type CactusModel } from 'cactus-react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 
@@ -351,8 +351,7 @@ export default function SettingsScreen() {
                       style={styles.deleteButton}
                       onPress={() => handleDelete(model)}
                     >
-                      <Ionicons
-                        name="trash-outline"
+                      <Trash
                         size={20}
                         color={isSelected ? colors.background : colors.error}
                       />
@@ -362,7 +361,7 @@ export default function SettingsScreen() {
                       style={styles.downloadButton}
                       onPress={() => handleDownload(model)}
                     >
-                      <Ionicons name="download-outline" size={24} color={colors.textPrimary} />
+                      <Download size={24} color={colors.textPrimary} />
                     </TouchableOpacity>
                   )
                 )}

@@ -12,7 +12,7 @@ import {
 import { useRouter } from 'expo-router';
 import { Drawer } from 'expo-router/drawer';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Search, X, Plus, MessageCircle } from 'lucide-react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 
 import { useChatStore } from '../../store/chatStore';
@@ -60,7 +60,7 @@ function DrawerContent() {
     >
       <View style={[styles.searchWrapper, { paddingTop: insets.top + spacing.md }]}>
         <View style={styles.searchContainer}>
-          <Ionicons name="search" size={20} color={colors.textSecondary} style={styles.searchIcon} />
+          <Search size={20} color={colors.textSecondary} style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
             placeholder="Search"
@@ -69,24 +69,24 @@ function DrawerContent() {
             onChangeText={setSearchQuery}
           />
           {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <Ionicons name="close-circle" size={20} color={colors.textSecondary} />
+            <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearButton}>
+              <X size={12} color={colors.background} />
             </TouchableOpacity>
           )}
         </View>
         <TouchableOpacity style={styles.newChatButton} onPress={handleNewChat}>
-          <Ionicons name="add" size={24} color={colors.textPrimary} />
+          <Plus size={24} color={colors.textPrimary} />
         </TouchableOpacity>
       </View>
 
       {chatSessions.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Ionicons name="chatbubbles-outline" size={48} color={colors.textDisabled} />
+          <MessageCircle size={48} color={colors.textDisabled} />
           <Text style={styles.emptyText}>No chats yet</Text>
         </View>
       ) : filteredSessions.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Ionicons name="search-outline" size={48} color={colors.textDisabled} />
+          <Search size={48} color={colors.textDisabled} />
           <Text style={styles.emptyText}>No chats found</Text>
         </View>
       ) : (
@@ -188,6 +188,15 @@ const styles = StyleSheet.create({
     flex: 1,
     color: colors.textPrimary,
     padding: 0,
+  },
+  clearButton: {
+    width: 16,
+    height: 16,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.textTertiary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: spacing.xs
   },
   emptyContainer: {
     flex: 1,

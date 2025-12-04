@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, TextInput, TouchableOpacity, StyleSheet, Image, ScrollView, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { X, Image as ImageIcon, Square, ArrowUp } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { colors, spacing, typography, borderRadius } from '../constants/theme';
 
@@ -19,7 +19,7 @@ export function MessageInput({ onSend, disabled, isGenerating, onStop, supportsV
   const insets = useSafeAreaInsets();
 
   const handleSend = () => {
-    if ((text.trim() || images.length > 0) && !disabled) {
+    if (text.trim() && !disabled) {
       onSend(text.trim(), images.length > 0 ? images : undefined);
       setText('');
       setImages([]);
@@ -57,7 +57,7 @@ export function MessageInput({ onSend, disabled, isGenerating, onStop, supportsV
     setImages((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const canSend = (text.trim() || images.length > 0) && !disabled;
+  const canSend = text.trim() && !disabled;
 
   return (
     <View style={[styles.container, { paddingBottom: Math.max(insets.bottom, spacing.md) }]}>
@@ -75,7 +75,7 @@ export function MessageInput({ onSend, disabled, isGenerating, onStop, supportsV
                 style={styles.removeImageButton}
                 onPress={() => removeImage(index)}
               >
-                <Ionicons name="close-circle" size={20} color={colors.background} />
+                <X size={12} color={colors.textPrimary} />
               </TouchableOpacity>
             </View>
           ))}
@@ -87,41 +87,41 @@ export function MessageInput({ onSend, disabled, isGenerating, onStop, supportsV
           onPress={pickImage}
           disabled={disabled || isGenerating}
         >
-          <Ionicons
-            name="image-outline"
+          <ImageIcon
             size={24}
             color={disabled || isGenerating ? colors.textDisabled : colors.textPrimary}
           />
         </TouchableOpacity>
-        <TextInput
-          style={styles.input}
-          value={text}
-          onChangeText={setText}
-          placeholder="Ask anything"
-          placeholderTextColor={colors.textTertiary}
-          multiline
-          maxLength={2000}
-          editable={!disabled}
-          onSubmitEditing={handleSend}
-          blurOnSubmit={false}
-        />
-        {isGenerating ? (
-          <TouchableOpacity style={styles.stopButton} onPress={onStop}>
-            <Ionicons name="stop" size={20} color={colors.background} />
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity
-            style={[styles.sendButton, !canSend && styles.sendButtonDisabled]}
-            onPress={handleSend}
-            disabled={!canSend}
-          >
-            <Ionicons
-              name="send"
-              size={20}
-              color={canSend ? colors.textPrimary : colors.textDisabled}
-            />
-          </TouchableOpacity>
-        )}
+        <View style={styles.inputContainer}>
+          <TextInput
+            style={styles.input}
+            value={text}
+            onChangeText={setText}
+            placeholder="Ask anything"
+            placeholderTextColor={colors.textTertiary}
+            multiline
+            maxLength={2000}
+            editable={!disabled}
+            onSubmitEditing={handleSend}
+            blurOnSubmit={false}
+          />
+          {isGenerating ? (
+            <TouchableOpacity style={styles.stopButton} onPress={onStop}>
+              <Square size={14} color={colors.background} fill={colors.background} />
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={[styles.sendButton, !canSend && styles.sendButtonDisabled]}
+              onPress={handleSend}
+              disabled={!canSend}
+            >
+              <ArrowUp
+                size={20}
+                color={colors.background}
+              />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
     </View>
   );
@@ -152,10 +152,14 @@ const styles = StyleSheet.create({
   },
   removeImageButton: {
     position: 'absolute',
-    top: -8,
-    right: -8,
-    backgroundColor: colors.textPrimary,
+    top: 4,
+    right: 4,
+    width: 20,
+    height: 20,
     borderRadius: borderRadius.full,
+    backgroundColor: colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   inputRow: {
     flexDirection: 'row',
@@ -167,24 +171,35 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: spacing.sm,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.surface,
+  },
+  inputContainer: {
+    flex: 1,
+    position: 'relative',
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.lg,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
   },
   input: {
     ...typography.body,
     flex: 1,
     minHeight: 40,
     maxHeight: 120,
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.lg,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm + 2,
-    marginRight: spacing.sm,
+    paddingRight: 48,
     color: colors.textPrimary,
   },
   sendButton: {
-    width: 40,
-    height: 40,
+    position: 'absolute',
+    right: 4,
+    bottom: 4,
+    width: 32,
+    height: 32,
     borderRadius: borderRadius.full,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.textPrimary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -192,8 +207,11 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   stopButton: {
-    width: 40,
-    height: 40,
+    position: 'absolute',
+    right: 4,
+    bottom: 4,
+    width: 32,
+    height: 32,
     borderRadius: borderRadius.full,
     backgroundColor: colors.textPrimary,
     alignItems: 'center',

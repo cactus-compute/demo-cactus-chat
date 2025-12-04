@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { useNavigation, useRouter } from 'expo-router';
 import { DrawerActions } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
+import { Menu, Settings } from 'lucide-react-native';
 import type { Message } from 'cactus-react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 
@@ -17,7 +17,7 @@ import { MessageInput } from '../../components/MessageInput';
 import { useChatStore, type MessageWithMetrics } from '../../store/chatStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { useCactusLM } from '../../contexts/CactusLMContext';
-import { colors, spacing, typography } from '../../constants/theme';
+import { colors, spacing, typography, borderRadius } from '../../constants/theme';
 import { saveImageToDocuments } from '../../utils/imageHelpers';
 
 export default function ChatScreen() {
@@ -25,6 +25,7 @@ export default function ChatScreen() {
   const router = useRouter();
   const flatListRef = useRef<FlatList>(null);
   const [currentModelSupportsVision, setCurrentModelSupportsVision] = useState(false);
+  const [currentModelName, setCurrentModelName] = useState<string | null>(null);
 
   const {
     currentMessages,
@@ -50,11 +51,12 @@ export default function ChatScreen() {
     clearCurrentSession();
   }, [clearCurrentSession]);
 
-  // Check if current model supports vision
+  // Check if current model supports vision and get model name
   useEffect(() => {
     const checkVisionSupport = async () => {
       if (!selectedModelSlug) {
         setCurrentModelSupportsVision(false);
+        setCurrentModelName(null);
         return;
       }
 
@@ -62,9 +64,11 @@ export default function ChatScreen() {
         const models = await cactusLM.getModels();
         const currentModel = models.find((m) => m.slug === selectedModelSlug);
         setCurrentModelSupportsVision(currentModel?.supportsVision || false);
+        setCurrentModelName(currentModel?.name || null);
       } catch (error) {
         console.error('Error fetching models:', error);
         setCurrentModelSupportsVision(false);
+        setCurrentModelName(null);
       }
     };
 
@@ -74,12 +78,20 @@ export default function ChatScreen() {
 
   useEffect(() => {
     navigation.setOptions({
+      headerTitle: () => (
+        <View style={styles.headerTitleContainer}>
+          <Text style={styles.headerTitle}>Cactus Chat</Text>
+          {currentModelName && (
+            <Text style={styles.headerSubtitle}>{currentModelName}</Text>
+          )}
+        </View>
+      ),
       headerLeft: () => (
         <TouchableOpacity
           onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
           style={styles.headerButton}
         >
-          <Ionicons name="menu" size={24} color={colors.textPrimary} />
+          <Menu size={24} color={colors.textPrimary} />
         </TouchableOpacity>
       ),
       headerRight: () => (
@@ -87,11 +99,11 @@ export default function ChatScreen() {
           onPress={() => router.push('/settings')}
           style={styles.headerButton}
         >
-          <Ionicons name="settings-outline" size={24} color={colors.textPrimary} />
+          <Settings size={24} color={colors.textPrimary} />
         </TouchableOpacity>
       ),
     });
-  }, [navigation, router]);
+  }, [navigation, router, currentModelName]);
 
   const lastResultRef = useRef<any>(null);
 
@@ -178,17 +190,21 @@ export default function ChatScreen() {
         </View>
       )}
 
-      {displayMessages.length === 0 ? (
+      {!selectedModelSlug ? (
         <View style={styles.emptyContainer}>
-          <Ionicons name="chatbubbles-outline" size={64} color={colors.textDisabled} />
-          <Text style={styles.emptyText}>Start a conversation</Text>
+          <Text style={styles.emptyText}>Welcome to Cactus Chat</Text>
           <Text style={styles.emptySubtext}>
-            {selectedModelSlug
-              ? 'Type a message below'
-              : 'Select a model in Settings first'}
+            Get started by selecting a model
           </Text>
+          <TouchableOpacity
+            style={styles.settingsButton}
+            onPress={() => router.push('/settings')}
+          >
+            <Settings size={20} color={colors.background} />
+            <Text style={styles.settingsButtonText}>Go to Settings</Text>
+          </TouchableOpacity>
         </View>
-      ) : (
+      ) : displayMessages.length > 0 ? (
         <FlatList
           ref={flatListRef}
           data={displayMessages}
@@ -196,15 +212,19 @@ export default function ChatScreen() {
           renderItem={({ item }) => <ChatBubble message={item} />}
           contentContainerStyle={styles.messageList}
         />
+      ) : (
+        <View style={styles.emptySpace} />
       )}
 
-      <MessageInput
-        onSend={handleSend}
-        disabled={cactusLM.isGenerating || !selectedModelSlug}
-        isGenerating={cactusLM.isGenerating}
-        onStop={() => cactusLM.stop()}
-        supportsVision={currentModelSupportsVision}
-      />
+      {selectedModelSlug && (
+        <MessageInput
+          onSend={handleSend}
+          disabled={cactusLM.isGenerating}
+          isGenerating={cactusLM.isGenerating}
+          onStop={() => cactusLM.stop()}
+          supportsVision={currentModelSupportsVision}
+        />
+      )}
     </KeyboardAvoidingView>
   );
 }
@@ -213,6 +233,21 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  headerTitleContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: {
+    ...typography.headingSmall,
+    color: colors.textPrimary,
+    textAlign: 'center',
+  },
+  headerSubtitle: {
+    ...typography.caption,
+    fontSize: 12,
+    color: colors.textTertiary,
+    textAlign: 'center',
   },
   headerButton: {
     padding: spacing.sm,
@@ -227,6 +262,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: spacing.xxl,
   },
+  emptySpace: {
+    flex: 1,
+  },
   emptyText: {
     ...typography.headingLarge,
     color: colors.textPrimary,
@@ -237,6 +275,20 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: spacing.sm,
     textAlign: 'center',
+  },
+  settingsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginTop: spacing.xl,
+    backgroundColor: colors.textPrimary,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.full,
+  },
+  settingsButtonText: {
+    ...typography.bodyMedium,
+    color: colors.background,
   },
   errorBanner: {
     backgroundColor: '#ff4444',
