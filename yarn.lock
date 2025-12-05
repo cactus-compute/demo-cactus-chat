@@ -1596,6 +1596,11 @@
   dependencies:
     merge-options "^3.0.4"
 
+"@react-native-community/slider@5.0.1":
+  version "5.0.1"
+  resolved "https://registry.yarnpkg.com/@react-native-community/slider/-/slider-5.0.1.tgz#478789e526af31e0660c6f49fa5c5429d8d4287b"
+  integrity sha512-K3JRWkIW4wQ79YJ6+BPZzp1SamoikxfPRw7Yw4B4PElEQmqZFrmH9M5LxvIo460/3QSrZF/wCgi3qizJt7g/iw==
+
 "@react-native/assets-registry@0.81.5":
   version "0.81.5"
   resolved "https://registry.yarnpkg.com/@react-native/assets-registry/-/assets-registry-0.81.5.tgz#d22c924fa6f6d4a463c5af34ce91f38756c0fa7d"
@@ -2679,10 +2684,10 @@ bytes@3.1.2:
   resolved "https://registry.yarnpkg.com/bytes/-/bytes-3.1.2.tgz#8b0beeb98605adf1b128fa4386403c009e0221a5"
   integrity sha512-/Nf7TyzTx6S3yRJObOAV7956r8cr2+Oj8AC5dt8wSP3BQAoeX58NoHyCU8P8zGkNXStjTSi6fzO6F0pBdcYbEg==
 
-cactus-react-native@^1.2.0:
-  version "1.2.0"
-  resolved "https://registry.yarnpkg.com/cactus-react-native/-/cactus-react-native-1.2.0.tgz#6032f5a44c0b758132ca7c4e3308f946b007faca"
-  integrity sha512-HxJdE7uDTDOUFXxhRT+otLodyqkCoGdfvySlKBI68yci9gXmPhR8aqykgNz3fiRG9BLgvJMr7A9b+f8MLbNNCA==
+cactus-react-native@^1.2.1:
+  version "1.2.1"
+  resolved "https://registry.yarnpkg.com/cactus-react-native/-/cactus-react-native-1.2.1.tgz#fa408844be6508e7b35e35f3d18c51438aaf4b98"
+  integrity sha512-VFwrQ+5MynPGW315ojuQFcWDPNaJ0ynIowahvJsWNVMMoned9k62BBUYDqGVVXCaAing5AJhAE1/b7mlrE9u/w==
 
 call-bind-apply-helpers@^1.0.0, call-bind-apply-helpers@^1.0.1, call-bind-apply-helpers@^1.0.2:
   version "1.0.2"

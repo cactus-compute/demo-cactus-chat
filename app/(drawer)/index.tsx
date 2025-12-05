@@ -5,6 +5,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   Text,
+  Platform,
 } from 'react-native';
 import { useNavigation, useRouter } from 'expo-router';
 import { DrawerActions } from '@react-navigation/native';
@@ -128,7 +129,7 @@ export default function ChatScreen() {
 
     const userMessage: Message = {
       role: 'user',
-      content: text || 'Analyze this image',
+      content: text,
       images: savedImagePaths,
     };
     addMessage(userMessage);
@@ -136,12 +137,13 @@ export default function ChatScreen() {
     const messages: Message[] = [
       {
         role: 'system',
-        content: reasoningMode
-          ? `${systemPrompt}\n\nPlease think through your response carefully and show your reasoning.`
-          : systemPrompt,
+        content: reasoningMode ? systemPrompt : `/no_think ${systemPrompt}`,
       },
       ...currentMessages,
-      userMessage,
+      {
+        ...userMessage,
+        content: reasoningMode ? text : `/no_think ${text}`,
+      },
     ];
 
     cactusLM.complete({
@@ -170,7 +172,7 @@ export default function ChatScreen() {
   }, [cactusLM.isGenerating, cactusLM.completion, addMessage]);
 
   useEffect(() => {
-    flatListRef.current?.scrollToEnd({ animated: true });
+      flatListRef.current?.scrollToEnd();
   }, []);
 
   const displayMessages: MessageWithMetrics[] =
@@ -204,7 +206,7 @@ export default function ChatScreen() {
             <Text style={styles.settingsButtonText}>Go to Settings</Text>
           </TouchableOpacity>
         </View>
-      ) : displayMessages.length > 0 ? (
+      ) :
         <FlatList
           ref={flatListRef}
           data={displayMessages}
@@ -212,9 +214,7 @@ export default function ChatScreen() {
           renderItem={({ item }) => <ChatBubble message={item} />}
           contentContainerStyle={styles.messageList}
         />
-      ) : (
-        <View style={styles.emptySpace} />
-      )}
+      }
 
       {selectedModelSlug && (
         <MessageInput
@@ -235,19 +235,19 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   headerTitleContainer: {
-    alignItems: 'center',
+    alignItems: Platform.OS === 'android' ? 'flex-start' : 'center',
     justifyContent: 'center',
   },
   headerTitle: {
     ...typography.headingSmall,
     color: colors.textPrimary,
-    textAlign: 'center',
+    textAlign: Platform.OS === 'android' ? 'left' : 'center',
   },
   headerSubtitle: {
     ...typography.caption,
     fontSize: 12,
     color: colors.textTertiary,
-    textAlign: 'center',
+    textAlign: Platform.OS === 'android' ? 'left' : 'center',
   },
   headerButton: {
     padding: spacing.sm,
@@ -261,9 +261,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: spacing.xxl,
-  },
-  emptySpace: {
-    flex: 1,
   },
   emptyText: {
     ...typography.headingLarge,

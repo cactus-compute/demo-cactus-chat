@@ -22,7 +22,7 @@ interface SettingsState {
 export const useSettingsStore = create<SettingsState>()(
   persist(
     (set) => ({
-      maxTokens: 2048,
+      maxTokens: 4000,
       temperature: 0.7,
       topP: 0.9,
       topK: 40,

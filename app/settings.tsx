@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import Slider from '@react-native-community/slider';
 import { Trash, Download } from 'lucide-react-native';
 import { CactusLM, type CactusModel } from 'cactus-react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
@@ -213,19 +214,19 @@ export default function SettingsScreen() {
               Maximum response length
             </Text>
           </View>
-          <TextInput
-            style={styles.inputInline}
-            value={maxTokens.toString()}
-            onChangeText={(text) => {
-              const value = parseInt(text) || 0;
-              if (value >= 0 && value <= 32000) {
-                setMaxTokens(value);
-              }
-            }}
-            keyboardType="numeric"
-            placeholder="2048"
-          />
+          <Text style={styles.sliderValue}>{maxTokens}</Text>
         </View>
+        <Slider
+          style={styles.slider}
+          minimumValue={0}
+          maximumValue={32000}
+          step={100}
+          value={maxTokens}
+          onValueChange={setMaxTokens}
+          minimumTrackTintColor={colors.textPrimary}
+          maximumTrackTintColor={colors.border}
+          thumbTintColor={colors.textPrimary}
+        />
       </View>
 
       <View style={styles.settingItem}>
@@ -236,19 +237,19 @@ export default function SettingsScreen() {
               Creativity level
             </Text>
           </View>
-          <TextInput
-            style={styles.inputInline}
-            value={temperature.toString()}
-            onChangeText={(text) => {
-              const value = parseFloat(text);
-              if (!isNaN(value) && value >= 0 && value <= 2) {
-                setTemperature(value);
-              }
-            }}
-            keyboardType="decimal-pad"
-            placeholder="0.7"
-          />
+          <Text style={styles.sliderValue}>{temperature.toFixed(2)}</Text>
         </View>
+        <Slider
+          style={styles.slider}
+          minimumValue={0}
+          maximumValue={2}
+          step={0.01}
+          value={temperature}
+          onValueChange={setTemperature}
+          minimumTrackTintColor={colors.textPrimary}
+          maximumTrackTintColor={colors.border}
+          thumbTintColor={colors.textPrimary}
+        />
       </View>
 
       <View style={styles.settingItem}>
@@ -259,19 +260,19 @@ export default function SettingsScreen() {
               Nucleus sampling threshold
             </Text>
           </View>
-          <TextInput
-            style={styles.inputInline}
-            value={topP.toString()}
-            onChangeText={(text) => {
-              const value = parseFloat(text);
-              if (!isNaN(value) && value >= 0 && value <= 1) {
-                setTopP(value);
-              }
-            }}
-            keyboardType="decimal-pad"
-            placeholder="0.9"
-          />
+          <Text style={styles.sliderValue}>{topP.toFixed(2)}</Text>
         </View>
+        <Slider
+          style={styles.slider}
+          minimumValue={0}
+          maximumValue={1}
+          step={0.01}
+          value={topP}
+          onValueChange={setTopP}
+          minimumTrackTintColor={colors.textPrimary}
+          maximumTrackTintColor={colors.border}
+          thumbTintColor={colors.textPrimary}
+        />
       </View>
 
       <View style={styles.settingItem}>
@@ -282,19 +283,19 @@ export default function SettingsScreen() {
               Limits token selection pool
             </Text>
           </View>
-          <TextInput
-            style={styles.inputInline}
-            value={topK.toString()}
-            onChangeText={(text) => {
-              const value = parseInt(text) || 0;
-              if (value >= 0 && value <= 100) {
-                setTopK(value);
-              }
-            }}
-            keyboardType="numeric"
-            placeholder="40"
-          />
+          <Text style={styles.sliderValue}>{topK}</Text>
         </View>
+        <Slider
+          style={styles.slider}
+          minimumValue={0}
+          maximumValue={100}
+          step={1}
+          value={topK}
+          onValueChange={setTopK}
+          minimumTrackTintColor={colors.textPrimary}
+          maximumTrackTintColor={colors.border}
+          thumbTintColor={colors.textPrimary}
+        />
       </View>
 
       <View style={styles.modelsSpacer} />
@@ -523,18 +524,18 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm + 2,
     color: colors.textPrimary,
   },
-  inputInline: {
-    ...typography.body,
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm + 2,
-    color: colors.textPrimary,
-    minWidth: 100,
-    textAlign: 'right',
-  },
   multilineInput: {
     minHeight: 100,
     textAlignVertical: 'top',
+  },
+  slider: {
+    width: '100%',
+    height: 40,
+  },
+  sliderValue: {
+    ...typography.bodyMedium,
+    color: colors.textPrimary,
+    minWidth: 60,
+    textAlign: 'right',
   },
 });

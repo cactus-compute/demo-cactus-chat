@@ -30,7 +30,7 @@ export function MessageInput({ onSend, disabled, isGenerating, onStop, supportsV
     if (!supportsVision) {
       Alert.alert(
         'Vision Model Required',
-        'The current model does not support vision. Please select a vision-capable model (like lfm2-vl-450m) in Settings to use image inputs.',
+        'The current model does not support vision. Please select a vision-capable model like lfm2-vl-450m.',
         [{ text: 'OK' }]
       );
       return;
@@ -75,7 +75,7 @@ export function MessageInput({ onSend, disabled, isGenerating, onStop, supportsV
                 style={styles.removeImageButton}
                 onPress={() => removeImage(index)}
               >
-                <X size={12} color={colors.textPrimary} />
+                <X size={14} color={colors.textPrimary} />
               </TouchableOpacity>
             </View>
           ))}
@@ -85,11 +85,10 @@ export function MessageInput({ onSend, disabled, isGenerating, onStop, supportsV
         <TouchableOpacity
           style={styles.imageButton}
           onPress={pickImage}
-          disabled={disabled || isGenerating}
         >
           <ImageIcon
             size={24}
-            color={disabled || isGenerating ? colors.textDisabled : colors.textPrimary}
+            color={colors.textPrimary}
           />
         </TouchableOpacity>
         <View style={styles.inputContainer}>
@@ -101,17 +100,16 @@ export function MessageInput({ onSend, disabled, isGenerating, onStop, supportsV
             placeholderTextColor={colors.textTertiary}
             multiline
             maxLength={2000}
-            editable={!disabled}
             onSubmitEditing={handleSend}
             blurOnSubmit={false}
           />
           {isGenerating ? (
-            <TouchableOpacity style={styles.stopButton} onPress={onStop}>
+            <TouchableOpacity style={styles.sendStopButton} onPress={onStop}>
               <Square size={14} color={colors.background} fill={colors.background} />
             </TouchableOpacity>
           ) : (
             <TouchableOpacity
-              style={[styles.sendButton, !canSend && styles.sendButtonDisabled]}
+              style={[styles.sendStopButton, !canSend && styles.sendButtonDisabled]}
               onPress={handleSend}
               disabled={!canSend}
             >
@@ -145,15 +143,15 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   imagePreview: {
-    width: 80,
-    height: 80,
+    width: 100,
+    height: 100,
     borderRadius: borderRadius.md,
     backgroundColor: colors.surface,
   },
   removeImageButton: {
     position: 'absolute',
-    top: 4,
-    right: 4,
+    top: 6,
+    right: 6,
     width: 20,
     height: 20,
     borderRadius: borderRadius.full,
@@ -192,7 +190,7 @@ const styles = StyleSheet.create({
     paddingRight: 48,
     color: colors.textPrimary,
   },
-  sendButton: {
+  sendStopButton: {
     position: 'absolute',
     right: 4,
     bottom: 4,
@@ -205,16 +203,5 @@ const styles = StyleSheet.create({
   },
   sendButtonDisabled: {
     opacity: 0.5,
-  },
-  stopButton: {
-    position: 'absolute',
-    right: 4,
-    bottom: 4,
-    width: 32,
-    height: 32,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.textPrimary,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
 });
