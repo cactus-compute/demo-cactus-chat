@@ -6,6 +6,7 @@ import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { CactusLMProvider } from '../contexts/CactusLMContext';
+import { CactusSTTProvider } from '../contexts/CactusSTTContext';
 import { colors, typography } from '../constants/theme';
 
 export default function RootLayout() {
@@ -14,33 +15,35 @@ export default function RootLayout() {
       <GestureHandlerRootView style={styles.container}>
         <KeyboardProvider>
           <CactusLMProvider>
-            <Stack
-              screenOptions={{
-                headerStyle: {
-                  backgroundColor: colors.background,
-                },
-                headerTintColor: colors.textPrimary,
-                headerTitleStyle: {
-                  ...typography.headingSmall,
-                },
-                headerShadowVisible: true,
-              }}
-            >
-              <Stack.Screen
-                name="(drawer)"
-                options={{
-                  headerShown: false,
+            <CactusSTTProvider>
+              <Stack
+                screenOptions={{
+                  headerStyle: {
+                    backgroundColor: colors.background,
+                  },
+                  headerTintColor: colors.textPrimary,
+                  headerTitleStyle: {
+                    ...typography.headingSmall,
+                  },
+                  headerShadowVisible: true,
                 }}
-              />
-              <Stack.Screen
-                name="settings"
-                options={{
-                  title: 'Settings',
-                  presentation: 'card',
-                  headerBackTitle: 'Chat',
-                }}
-              />
-            </Stack>
+              >
+                <Stack.Screen
+                  name="(drawer)"
+                  options={{
+                    headerShown: false,
+                  }}
+                />
+                <Stack.Screen
+                  name="settings"
+                  options={{
+                    title: 'Settings',
+                    presentation: 'card',
+                    headerBackTitle: 'Chat',
+                  }}
+                />
+              </Stack>
+            </CactusSTTProvider>
           </CactusLMProvider>
         </KeyboardProvider>
       </GestureHandlerRootView>

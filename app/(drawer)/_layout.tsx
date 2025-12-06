@@ -12,7 +12,7 @@ import {
 import { useRouter } from 'expo-router';
 import { Drawer } from 'expo-router/drawer';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Search, X, Plus, MessageCircle } from 'lucide-react-native';
+import { Search, X, Plus } from 'lucide-react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 
 import { useChatStore } from '../../store/chatStore';
@@ -70,7 +70,7 @@ function DrawerContent() {
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearButton}>
-              <X size={12} color={colors.background} />
+              <X size={12} color={colors.background} strokeWidth={3} />
             </TouchableOpacity>
           )}
         </View>
@@ -81,12 +81,10 @@ function DrawerContent() {
 
       {chatSessions.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <MessageCircle size={48} color={colors.textDisabled} />
           <Text style={styles.emptyText}>No chats yet</Text>
         </View>
       ) : filteredSessions.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Search size={48} color={colors.textDisabled} />
           <Text style={styles.emptyText}>No chats found</Text>
         </View>
       ) : (
@@ -156,9 +154,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   searchWrapper: {
+    marginTop: -12,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.md,
     paddingBottom: spacing.md,
     backgroundColor: colors.background,
     gap: spacing.sm,

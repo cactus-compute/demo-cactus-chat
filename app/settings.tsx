@@ -6,13 +6,12 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  Switch,
   ActivityIndicator,
   Alert,
 } from 'react-native';
 import Slider from '@react-native-community/slider';
-import { Trash, Download } from 'lucide-react-native';
-import { CactusLM, type CactusModel } from 'cactus-react-native';
+import { Trash, Download, ChevronDown, ChevronUp } from 'lucide-react-native';
+import { CactusLM, CactusSTT, type CactusModel, type CactusSTTModel } from 'cactus-react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 
 import { useSettingsStore } from '../store/settingsStore';
@@ -24,29 +23,36 @@ import {
   deleteModel,
 } from '../utils/cactusHelpers';
 import { useCactusLM } from '../contexts/CactusLMContext';
+import { useCactusSTT } from '../contexts/CactusSTTContext';
 import { colors, spacing, typography, borderRadius } from '../constants/theme';
 
 export default function SettingsScreen() {
   const cactusLM = useCactusLM();
+  const cactusSTT = useCactusSTT();
   const [models, setModels] = useState<CactusModel[]>([]);
+  const [sttModels, setSTTModels] = useState<CactusSTTModel[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sttLoading, setSTTLoading] = useState(true);
   const [downloadedModels, setDownloadedModels] = useState<Set<string>>(new Set());
+  const [downloadedSTTModels, setDownloadedSTTModels] = useState<Set<string>>(new Set());
+  const [languageModelsExpanded, setLanguageModelsExpanded] = useState(true);
+  const [sttModelsExpanded, setSTTModelsExpanded] = useState(true);
 
   const {
     maxTokens,
     temperature,
     topP,
     topK,
-    reasoningMode,
     systemPrompt,
     selectedModelSlug,
+    selectedSTTModelSlug,
     setMaxTokens,
     setTemperature,
     setTopP,
     setTopK,
-    setReasoningMode,
     setSystemPrompt,
     setSelectedModelSlug,
+    setSelectedSTTModelSlug,
   } = useSettingsStore();
 
   const {
@@ -60,6 +66,7 @@ export default function SettingsScreen() {
 
   useEffect(() => {
     loadModels();
+    loadSTTModels();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -167,6 +174,96 @@ export default function SettingsScreen() {
     }
   };
 
+  const loadSTTModels = async () => {
+    try {
+      setSTTLoading(true);
+      const allSTTModels = await cactusSTT.getModels();
+      setSTTModels(allSTTModels);
+
+      // Check which STT models are actually downloaded
+      const downloaded = new Set<string>();
+      allSTTModels.forEach((model) => {
+        if (model.isDownloaded) {
+          downloaded.add(model.slug);
+        }
+      });
+      setDownloadedSTTModels(downloaded);
+    } catch (error) {
+      Alert.alert('Error', `Failed to load STT models: ${error}`);
+    } finally {
+      setSTTLoading(false);
+    }
+  };
+
+  const handleDownloadSTT = async (model: CactusSTTModel) => {
+    startDownload(model.slug);
+
+    try {
+      const tempSTT = new CactusSTT({ model: model.slug });
+
+      await tempSTT.download({
+        onProgress: (progress) => {
+          updateDownloadProgress(model.slug, progress);
+        },
+      });
+
+      completeDownload(model.slug);
+      setDownloadedSTTModels((prev) => new Set([...prev, model.slug]));
+      setSelectedSTTModelSlug(model.slug);
+
+      Alert.alert(
+        'Success',
+        `${model.slug} downloaded and selected`
+      );
+    } catch (error) {
+      completeDownload(model.slug);
+      Alert.alert('Error', `Failed to download ${model.slug}: ${error}`);
+    }
+  };
+
+  const handleDeleteSTT = async (model: CactusSTTModel) => {
+    Alert.alert(
+      'Delete STT Model',
+      `Are you sure you want to delete ${model.slug}?`,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteModel(model);
+
+              setDownloadedSTTModels((prev) => {
+                const newSet = new Set(prev);
+                newSet.delete(model.slug);
+                return newSet;
+              });
+
+              if (selectedSTTModelSlug === model.slug) {
+                setSelectedSTTModelSlug(null);
+              }
+
+              Alert.alert('Success', `${model.slug} deleted successfully`);
+            } catch (error) {
+              Alert.alert('Error', `Failed to delete ${model.slug}: ${error}`);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleSelectSTTModel = (model: CactusSTTModel) => {
+    if (downloadedSTTModels.has(model.slug)) {
+      setSelectedSTTModelSlug(model.slug);
+      Alert.alert('STT Model Selected', `Now using ${model.slug}`);
+    }
+  };
+
   return (
     <KeyboardAvoidingView
       behavior="padding"
@@ -187,23 +284,6 @@ export default function SettingsScreen() {
           numberOfLines={4}
           placeholder="Enter system prompt..."
         />
-      </View>
-
-      <View style={styles.settingItem}>
-        <View style={styles.settingItemRow}>
-          <View style={styles.settingLabelContainer}>
-            <Text style={styles.settingLabel}>Reasoning Mode</Text>
-            <Text style={styles.settingDescription}>
-              Show step-by-step thinking process
-            </Text>
-          </View>
-          <Switch
-            value={reasoningMode}
-            onValueChange={setReasoningMode}
-            trackColor={{ false: colors.border, true: colors.textPrimary }}
-            thumbColor={colors.background}
-          />
-        </View>
       </View>
 
       <View style={styles.settingItem}>
@@ -300,17 +380,30 @@ export default function SettingsScreen() {
 
       <View style={styles.modelsSpacer} />
 
-      <Text style={styles.modelsLabel}>Models</Text>
+      <TouchableOpacity
+        style={styles.sectionHeader}
+        onPress={() => setLanguageModelsExpanded(!languageModelsExpanded)}
+        activeOpacity={0.7}
+      >
+        <Text style={styles.modelsLabel}>Language Models</Text>
+        {languageModelsExpanded ? (
+          <ChevronUp size={20} color={colors.textPrimary} />
+        ) : (
+          <ChevronDown size={20} color={colors.textPrimary} />
+        )}
+      </TouchableOpacity>
 
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.textPrimary} />
-          <Text style={styles.loadingText}>Loading models...</Text>
-        </View>
-      ) : models.length === 0 ? (
-        <Text style={styles.emptyText}>No models available</Text>
-      ) : (
-        models.map((model) => {
+      {languageModelsExpanded && (
+        <>
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={colors.textPrimary} />
+              <Text style={styles.loadingText}>Loading models...</Text>
+            </View>
+          ) : models.length === 0 ? (
+            <Text style={styles.emptyText}>No models available</Text>
+          ) : (
+            models.map((model) => {
           const downloaded = downloadedModels.has(model.slug);
           const isDownloading = downloadingModels.has(model.slug);
           const progress = downloadProgress[model.slug] || 0;
@@ -369,7 +462,98 @@ export default function SettingsScreen() {
               </View>
             </View>
           );
-        })
+            })
+          )}
+        </>
+      )}
+
+      <View style={styles.modelsSpacer} />
+
+      <TouchableOpacity
+        style={styles.sectionHeader}
+        onPress={() => setSTTModelsExpanded(!sttModelsExpanded)}
+        activeOpacity={0.7}
+      >
+        <Text style={styles.modelsLabel}>Speech-to-Text Models</Text>
+        {sttModelsExpanded ? (
+          <ChevronUp size={20} color={colors.textPrimary} />
+        ) : (
+          <ChevronDown size={20} color={colors.textPrimary} />
+        )}
+      </TouchableOpacity>
+
+      {sttModelsExpanded && (
+        <>
+          {sttLoading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={colors.textPrimary} />
+              <Text style={styles.loadingText}>Loading STT models...</Text>
+            </View>
+          ) : sttModels.length === 0 ? (
+            <Text style={styles.emptyText}>No STT models available</Text>
+          ) : (
+            sttModels.map((model) => {
+          const downloaded = downloadedSTTModels.has(model.slug);
+          const isDownloading = downloadingModels.has(model.slug);
+          const progress = downloadProgress[model.slug] || 0;
+          const isSelected = selectedSTTModelSlug === model.slug;
+
+          return (
+            <View key={model.slug} style={[styles.modelItem, isSelected && styles.modelItemSelected]}>
+              <TouchableOpacity
+                style={styles.modelContent}
+                onPress={() => downloaded && handleSelectSTTModel(model)}
+                disabled={!downloaded || isDownloading}
+                activeOpacity={0.7}
+              >
+                <View style={styles.modelInfo}>
+                  <View style={styles.modelHeader}>
+                    <Text style={[styles.modelName, isSelected && styles.modelNameSelected]}>
+                      {model.slug}
+                    </Text>
+                  </View>
+                  <Text style={[styles.modelDetails, isSelected && styles.modelDetailsSelected]}>
+                    {formatModelSize(model.sizeMb)}
+                  </Text>
+                  {isDownloading && (
+                    <View style={styles.progressContainer}>
+                      <View style={styles.progressBarContainer}>
+                        <View style={[styles.progressBar, { width: `${progress * 100}%` }]} />
+                      </View>
+                      <Text style={styles.progressText}>
+                        {Math.round(progress * 100)}%
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              </TouchableOpacity>
+              <View style={styles.modelActions}>
+                {!isDownloading && (
+                  downloaded ? (
+                    <TouchableOpacity
+                      style={styles.deleteButton}
+                      onPress={() => handleDeleteSTT(model)}
+                    >
+                      <Trash
+                        size={20}
+                        color={isSelected ? colors.background : colors.error}
+                      />
+                    </TouchableOpacity>
+                  ) : (
+                    <TouchableOpacity
+                      style={styles.downloadButton}
+                      onPress={() => handleDownloadSTT(model)}
+                    >
+                      <Download size={24} color={colors.textPrimary} />
+                    </TouchableOpacity>
+                  )
+                )}
+              </View>
+            </View>
+          );
+            })
+          )}
+        </>
       )}
     </ScrollView>
     </KeyboardAvoidingView>
@@ -386,7 +570,8 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.lg,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xxl,
   },
   loadingContainer: {
     alignItems: 'center',
@@ -406,10 +591,16 @@ const styles = StyleSheet.create({
   modelsSpacer: {
     height: spacing.lg,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.sm,
+    paddingVertical: spacing.xs,
+  },
   modelsLabel: {
     ...typography.bodySemibold,
     color: colors.textPrimary,
-    marginBottom: spacing.sm,
   },
   modelItem: {
     flexDirection: 'row',

@@ -1,12 +1,11 @@
-import * as FileSystem from 'expo-file-system/legacy';
+import { Directory, File, Paths } from 'expo-file-system';
 
-const IMAGES_DIR = `${FileSystem.documentDirectory}cactus/chat-images/`;
+const IMAGES_DIR = new Directory(Paths.document, 'cactus', 'chat-images');
 
 // Ensure the images directory exists
 export async function ensureImagesDirExists(): Promise<void> {
-  const dirInfo = await FileSystem.getInfoAsync(IMAGES_DIR);
-  if (!dirInfo.exists) {
-    await FileSystem.makeDirectoryAsync(IMAGES_DIR, { intermediates: true });
+  if (!IMAGES_DIR.exists) {
+    IMAGES_DIR.create({ intermediates: true });
   }
 }
 
@@ -15,22 +14,20 @@ export async function saveImageToDocuments(sourceUri: string): Promise<string> {
   await ensureImagesDirExists();
 
   const filename = `${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`;
-  const destPath = `${IMAGES_DIR}${filename}`;
+  const sourceFile = new File(sourceUri);
+  const destFile = new File(IMAGES_DIR, filename);
 
-  await FileSystem.copyAsync({
-    from: sourceUri,
-    to: destPath,
-  });
+  sourceFile.copy(destFile);
 
-  return destPath;
+  return destFile.uri;
 }
 
 // Delete an image from the documents folder
 export async function deleteImageFromDocuments(imagePath: string): Promise<void> {
   try {
-    const fileInfo = await FileSystem.getInfoAsync(imagePath);
-    if (fileInfo.exists) {
-      await FileSystem.deleteAsync(imagePath, { idempotent: true });
+    const file = new File(imagePath);
+    if (file.exists) {
+      file.delete();
     }
   } catch (error) {
     console.error('Error deleting image:', error);
@@ -41,7 +38,7 @@ export async function deleteImageFromDocuments(imagePath: string): Promise<void>
 export async function deleteImagesForSession(imageUris: string[]): Promise<void> {
   await Promise.all(
     imageUris.map((uri) => {
-      if (uri.startsWith(IMAGES_DIR)) {
+      if (uri.startsWith(IMAGES_DIR.uri)) {
         return deleteImageFromDocuments(uri);
       }
       return Promise.resolve();

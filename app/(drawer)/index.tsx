@@ -42,7 +42,6 @@ export default function ChatScreen() {
     topP,
     topK,
     systemPrompt,
-    reasoningMode,
   } = useSettingsStore();
 
   const cactusLM = useCactusLM();
@@ -137,12 +136,12 @@ export default function ChatScreen() {
     const messages: Message[] = [
       {
         role: 'system',
-        content: reasoningMode ? systemPrompt : `/no_think ${systemPrompt}`,
+        content: systemPrompt,
       },
       ...currentMessages,
       {
         ...userMessage,
-        content: reasoningMode ? text : `/no_think ${text}`,
+        content: text,
       },
     ];
 

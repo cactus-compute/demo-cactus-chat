@@ -1,5 +1,5 @@
-import type { CactusModel } from 'cactus-react-native';
-import * as FileSystem from 'expo-file-system/legacy';
+import type { CactusModel, CactusSTTModel } from 'cactus-react-native';
+import { Directory, Paths } from 'expo-file-system';
 
 export function formatModelSize(sizeMb: number): string {
   if (sizeMb < 1024) {
@@ -14,22 +14,20 @@ export function getModelDisplayName(model: CactusModel): string {
 
 export async function isModelDownloaded(model: CactusModel): Promise<boolean> {
   try {
-    const modelPath = `${FileSystem.documentDirectory}cactus/models/${model.slug}`;
-    const fileInfo = await FileSystem.getInfoAsync(modelPath);
-    return fileInfo.exists;
+    const modelDir = new Directory(Paths.document, 'cactus', 'models', model.slug);
+    return modelDir.exists;
   } catch (error) {
     console.error('Error checking if model is downloaded:', error);
     return false;
   }
 }
 
-export async function deleteModel(model: CactusModel): Promise<void> {
+export async function deleteModel(model: CactusModel | CactusSTTModel): Promise<void> {
   try {
-    const modelPath = `${FileSystem.documentDirectory}cactus/models/${model.slug}`;
-    const fileInfo = await FileSystem.getInfoAsync(modelPath);
+    const modelDir = new Directory(Paths.document, 'cactus', 'models', model.slug);
 
-    if (fileInfo.exists) {
-      await FileSystem.deleteAsync(modelPath, { idempotent: true });
+    if (modelDir.exists) {
+      modelDir.delete();
     }
   } catch (error) {
     console.error('Error deleting model:', error);

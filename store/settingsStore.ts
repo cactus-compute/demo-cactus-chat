@@ -7,16 +7,16 @@ interface SettingsState {
   temperature: number;
   topP: number;
   topK: number;
-  reasoningMode: boolean;
   systemPrompt: string;
   selectedModelSlug: string | null;
+  selectedSTTModelSlug: string | null;
   setMaxTokens: (maxTokens: number) => void;
   setTemperature: (temperature: number) => void;
   setTopP: (topP: number) => void;
   setTopK: (topK: number) => void;
-  setReasoningMode: (enabled: boolean) => void;
   setSystemPrompt: (prompt: string) => void;
   setSelectedModelSlug: (slug: string | null) => void;
+  setSelectedSTTModelSlug: (slug: string | null) => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -26,16 +26,16 @@ export const useSettingsStore = create<SettingsState>()(
       temperature: 0.7,
       topP: 0.9,
       topK: 40,
-      reasoningMode: false,
       systemPrompt: 'You are a helpful AI assistant.',
       selectedModelSlug: null,
+      selectedSTTModelSlug: null,
       setMaxTokens: (maxTokens) => set({ maxTokens }),
       setTemperature: (temperature) => set({ temperature }),
       setTopP: (topP) => set({ topP }),
       setTopK: (topK) => set({ topK }),
-      setReasoningMode: (enabled) => set({ reasoningMode: enabled }),
       setSystemPrompt: (prompt) => set({ systemPrompt: prompt }),
       setSelectedModelSlug: (slug) => set({ selectedModelSlug: slug }),
+      setSelectedSTTModelSlug: (slug) => set({ selectedSTTModelSlug: slug }),
     }),
     {
       name: 'cactus-settings-storage',
