@@ -35,8 +35,6 @@ export default function SettingsScreen() {
   const [sttLoading, setSTTLoading] = useState(true);
   const [downloadedModels, setDownloadedModels] = useState<Set<string>>(new Set());
   const [downloadedSTTModels, setDownloadedSTTModels] = useState<Set<string>>(new Set());
-  const [languageModelsExpanded, setLanguageModelsExpanded] = useState(true);
-  const [sttModelsExpanded, setSTTModelsExpanded] = useState(true);
 
   const {
     maxTokens,
@@ -46,6 +44,8 @@ export default function SettingsScreen() {
     systemPrompt,
     selectedModelSlug,
     selectedSTTModelSlug,
+    languageModelsExpanded,
+    sttModelsExpanded,
     setMaxTokens,
     setTemperature,
     setTopP,
@@ -53,6 +53,8 @@ export default function SettingsScreen() {
     setSystemPrompt,
     setSelectedModelSlug,
     setSelectedSTTModelSlug,
+    setLanguageModelsExpanded,
+    setSTTModelsExpanded,
   } = useSettingsStore();
 
   const {
@@ -298,9 +300,9 @@ export default function SettingsScreen() {
         </View>
         <Slider
           style={styles.slider}
-          minimumValue={0}
-          maximumValue={32000}
-          step={100}
+          minimumValue={64}
+          maximumValue={2048}
+          step={16}
           value={maxTokens}
           onValueChange={setMaxTokens}
           minimumTrackTintColor={colors.textPrimary}
