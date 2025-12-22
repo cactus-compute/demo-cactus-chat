@@ -30,7 +30,7 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "The app accesses your photos to let you attach images to your messages."
+          "photosPermission": "Allow $(PRODUCT_NAME) to access your photos and videos."
         }
       ],
       [
@@ -42,7 +42,12 @@
           "backgroundColor": "#ffffff"
         }
       ],
-      "expo-audio"
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
