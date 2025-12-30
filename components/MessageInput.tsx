@@ -1,14 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { View, TextInput, TouchableOpacity, StyleSheet, Image, ScrollView, Alert, ActivityIndicator } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, TextInput, TouchableOpacity, StyleSheet, Image, ScrollView, Alert } from 'react-native';
 import { X, Image as ImageIcon, Square, ArrowUp, AudioLines } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { useAudioRecorder, useAudioRecorderState, setAudioModeAsync, requestRecordingPermissionsAsync, IOSOutputFormat, AudioQuality } from 'expo-audio';
-import { Paths, File } from 'expo-file-system';
 import { colors, spacing, typography, borderRadius } from '../constants/theme';
-import { useCactusSTT } from '../contexts/CactusSTTContext';
-import { useSettingsStore } from '../store/settingsStore';
-import { convertPCMToWAV } from '../utils/audioHelpers';
+import { AudioManager, AudioRecorder } from 'react-native-audio-api';
+import { useCactusSTT } from '@/contexts/CactusSTTContext';
+
+
+// Audio Streaming Config
+const AUDIO_SAMPLE_RATE = 16000; // 16kHz sample rate (whisper requirement)
+const AUDIO_BUFFER_LENGTH_IN_SAMPLES = AUDIO_SAMPLE_RATE * 1; // 1 second buffer, onAudioReady function called every 1 second
+const AUDIO_MIN_TRANSCRIBE_SAMPLES = AUDIO_SAMPLE_RATE * 2; // Minimum 2 seconds of audio to transcribe
+const AUDIO_MAX_BUFFER_SAMPLES = AUDIO_SAMPLE_RATE * 30; // Keep last 30 seconds of audio (whispers limit)
 
 interface MessageInputProps {
   onSend: (message: string, images?: string[]) => void | Promise<void>;
@@ -18,89 +21,75 @@ interface MessageInputProps {
   supportsVision: boolean;
 }
 
-const MAX_DURATION = 30;
-
 export function MessageInput({ onSend, disabled, isGenerating, onStop, supportsVision }: MessageInputProps) {
+  const [audioRecorder] = useState(() => new AudioRecorder({
+    sampleRate: AUDIO_SAMPLE_RATE,
+    bufferLengthInSamples: AUDIO_BUFFER_LENGTH_IN_SAMPLES,
+  }));
+  const committedTranscription = useRef('');
+  const previousTranscription = useRef('');
+  const previousBufferLength = useRef(0);
+  const currentTranscription = useRef('');
+  const currentBuffer = useRef<number[]>([]);
+  const isTranscribingRef = useRef(false);
+  const cactusSTT = useCactusSTT();
+
+  const [isRecording, setIsRecording] = useState(false);
+  const [streamingTranscription, setStreamingTranscription] = useState('');
+
   const [text, setText] = useState('');
   const [images, setImages] = useState<string[]>([]);
-  const [waveformData, setWaveformData] = useState<number[]>(Array(MAX_DURATION).fill(-160));
-
-  const insets = useSafeAreaInsets();
-  const cactusSTT = useCactusSTT();
-  const { selectedSTTModelSlug } = useSettingsStore();
-
-  const recorder = useAudioRecorder({
-    extension: '.wav',
-    sampleRate: 16000,
-    numberOfChannels: 1,
-    bitRate: 256000,
-    android: {
-      extension: '.wav',
-      outputFormat: 'default',
-      audioEncoder: 'default',
-      sampleRate: 16000,
-    },
-    ios: {
-      extension: '.wav',
-      outputFormat: IOSOutputFormat.LINEARPCM,
-      audioQuality: AudioQuality.MAX,
-      sampleRate: 16000,
-      linearPCMBitDepth: 16,
-      linearPCMIsBigEndian: false,
-      linearPCMIsFloat: false,
-    },
-    web: {
-      mimeType: 'audio/wav',
-      bitsPerSecond: 256000,
-    }
-  });
-  const recorderState = useAudioRecorderState(recorder);
-
   const hasText = text.trim().length > 0;
 
   const cleanTranscription = (transcription: string) => {
     return transcription.replace(/<\|startoftranscript\|>/g, '').trim();
   };
 
-  // Update waveform data with current metering
-  useEffect(() => {
-    if (recorderState.isRecording && recorderState.metering !== undefined) {
-      const currentBar = Math.floor((recorderState.durationMillis / 1000));
-      if (currentBar < MAX_DURATION) {
-        setWaveformData(prev => {
-          const updated = [...prev];
-          updated[currentBar] = recorderState.metering || -160;
-          return updated;
-        });
+
+  const calculateSimilarity = (str1: string, str2: string): number => {
+    const len1 = str1.length;
+    const len2 = str2.length;
+
+    if (len1 === 0) return len2 === 0 ? 1 : 0;
+    if (len2 === 0) return 0;
+
+    const matrix: number[][] = Array(len1 + 1)
+      .fill(null)
+      .map(() => Array(len2 + 1).fill(0));
+
+    for (let i = 0; i <= len1; i++) matrix[i][0] = i;
+    for (let j = 0; j <= len2; j++) matrix[0][j] = j;
+
+    for (let i = 1; i <= len1; i++) {
+      for (let j = 1; j <= len2; j++) {
+        const cost = str1[i - 1] === str2[j - 1] ? 0 : 1;
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j] + 1,
+          matrix[i][j - 1] + 1,
+          matrix[i - 1][j - 1] + cost
+        );
       }
     }
-  }, [recorderState.metering, recorderState.durationMillis, recorderState.isRecording]);
 
-  const handleRecordingComplete = async () => {
-    const uri = recorder.uri;
-    if (!uri) return;
+    const distance = matrix[len1][len2];
+    const maxLen = Math.max(len1, len2);
+    return 1 - distance / maxLen;
+  };
 
-    try {
-      const audioFilePath = `${Paths.cache.uri}recording_${Date.now()}.wav`;
+  const fuzzyMatch = (previous: string, current: string, threshold: number = 0.9): boolean => {
+    if (!previous || !current) return false;
 
-      // Convert raw PCM to proper WAV format with RIFF headers
-      await convertPCMToWAV(uri, audioFilePath, 16000, 1, 16);
+    const prevNorm = previous.toLowerCase().trim();
+    const currNorm = current.toLowerCase().trim();
 
-      try {
-        const result = await cactusSTT.transcribe({ audioFilePath });
-        if (result.response) {
-          const cleanedResponse = cleanTranscription(result.response);
-          setText((prev) => (prev ? prev + ' ' : '') + cleanedResponse);
-        }
-      } catch (transcribeError) {
-        Alert.alert('Transcription Error', `Failed to transcribe audio: ${transcribeError}`);
-      } finally {
-        await cactusSTT.reset();
-        new File(audioFilePath).delete();
-      }
-    } catch (error) {
-      Alert.alert('Error', `Failed to process recording: ${error}`);
-    }
+    if (currNorm.startsWith(prevNorm)) return true;
+
+    const prefixLength = prevNorm.length;
+    if (currNorm.length < prefixLength) return false;
+
+    const currentPrefix = currNorm.substring(0, prefixLength);
+    const similarity = calculateSimilarity(prevNorm, currentPrefix);
+    return similarity >= threshold;
   };
 
   const handleSend = () => {
@@ -138,61 +127,96 @@ export function MessageInput({ onSend, disabled, isGenerating, onStop, supportsV
     }
   };
 
+  useEffect(() => {
+    // Audio setup
+    AudioManager.setAudioSessionOptions({
+      iosCategory: 'playAndRecord',
+      iosMode: 'default',
+      iosOptions: ['defaultToSpeaker', 'allowBluetoothA2DP'],
+    });
+    audioRecorder.onAudioReady(async ({ buffer }) => {
+      // Append new audio data to buffer
+      currentBuffer.current.push(...buffer.getChannelData(0));
+
+      // Keep only the last 30 seconds of audio
+      if (currentBuffer.current.length > AUDIO_MAX_BUFFER_SAMPLES) {
+        currentBuffer.current = currentBuffer.current.slice(currentBuffer.current.length - AUDIO_MAX_BUFFER_SAMPLES);
+      }
+
+      if (currentBuffer.current.length >= AUDIO_MIN_TRANSCRIBE_SAMPLES && !isTranscribingRef.current) {
+        isTranscribingRef.current = true;
+
+        // Take current audio buffer for transcription
+        const current = [...currentBuffer.current];
+
+
+        // Convert float32 audio to uint8 PCM
+        const pcm16Buffer = new Int16Array(current.length);
+        for (let i = 0; i < current.length; i++) {
+          const clamped = Math.max(-1, Math.min(1, current[i]));
+          pcm16Buffer[i] = Math.round(clamped * 32767);
+        }
+        const pcm8 = new Uint8Array(pcm16Buffer.buffer);
+
+        // Transcribe audio
+        const result = await cactusSTT.transcribe({
+          audio: Array.from(pcm8),
+        });
+        await cactusSTT.reset();
+
+        currentTranscription.current = result.response;
+
+        // Update streaming transcription
+        setStreamingTranscription(cleanTranscription(committedTranscription.current + currentTranscription.current));
+
+        // If previous transcription gets confirmed in current (using fuzzy matching), commit it
+        if (fuzzyMatch(previousTranscription.current, currentTranscription.current)) {
+          // Commit previous transcription
+          committedTranscription.current += previousTranscription.current;
+          // Remove committed part from audio buffer
+          currentBuffer.current = currentBuffer.current.slice(previousBufferLength.current);
+        }
+
+        // Update previous transcription
+        previousTranscription.current = currentTranscription.current;
+        // Update previous audio buffer length
+        previousBufferLength.current = current.length;
+
+        isTranscribingRef.current = false;
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const removeImage = (index: number) => {
     setImages((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const startRecording = async () => {
-    if (!selectedSTTModelSlug) {
-      Alert.alert(
-        'STT Model Required',
-        'Please select a Speech-to-Text model in Settings to use voice input.',
-        [{ text: 'OK' }]
-      );
-      return;
-    }
-
-    try {
-      const { granted } = await requestRecordingPermissionsAsync();
-      if (!granted) {
-        Alert.alert('Permission Required', 'Microphone permission is required for recording.');
-        return;
-      }
-
-      await setAudioModeAsync({
-        allowsRecording: true,
-        playsInSilentMode: true,
-      });
-
-      setWaveformData(Array(MAX_DURATION).fill(-160));
-      await recorder.prepareToRecordAsync();
-      recorder.record({ forDuration: MAX_DURATION });
-    } catch (error) {
-      Alert.alert('Error', `Failed to start recording: ${error}`);
-    }
+  const startRecording = () => {
+    previousTranscription.current = '';
+    committedTranscription.current = '';
+    currentBuffer.current = [];
+    previousBufferLength.current = 0;
+    setStreamingTranscription('');
+    setIsRecording(true);
+    audioRecorder.start();
   };
 
   const stopRecording = async () => {
-    if (!recorderState.isRecording) return;
-    try {
-      await recorder.stop();
-      await handleRecordingComplete();
-    } catch (error) {
-      Alert.alert('Error', `Failed to stop recording: ${error}`);
-    }
+    audioRecorder.stop();
+    setIsRecording(false);
+    setStreamingTranscription('');
+    setText(cleanTranscription(committedTranscription.current + currentTranscription.current));
   };
 
-  const cancelRecording = async () => {
-    if (!recorderState.isRecording) return;
-    try {
-      await recorder.stop();
-    } catch (error) {
-      console.error('Failed to cancel recording:', error);
-    }
+  const cancelRecording = () => {
+    audioRecorder.stop();
+    setIsRecording(false);
+    setStreamingTranscription('');
   };
 
   return (
-    <View style={[styles.container, { paddingBottom: Math.max(insets.bottom, spacing.md) }]}>
+    <View style={styles.container}>
       {images.length > 0 && (
         <ScrollView
           horizontal
@@ -216,9 +240,9 @@ export function MessageInput({ onSend, disabled, isGenerating, onStop, supportsV
       <View style={styles.inputRow}>
         <TouchableOpacity
           style={styles.imageButton}
-          onPress={recorderState.isRecording ? cancelRecording : pickImage}
+          onPress={isRecording ? cancelRecording : pickImage}
         >
-          {recorderState.isRecording ? (
+          {isRecording ? (
             <X size={18} color={colors.textPrimary} strokeWidth={3} />
           ) : (
             <ImageIcon
@@ -228,52 +252,24 @@ export function MessageInput({ onSend, disabled, isGenerating, onStop, supportsV
           )}
         </TouchableOpacity>
         <View style={styles.inputContainer}>
-          {recorderState.isRecording ? (
-            <View style={styles.recordingIndicator}>
-              <View style={styles.recordingDot} />
-              <View style={styles.waveformContainer}>
-                {waveformData.map((metering, index) => {
-                  const normalizedHeight = Math.max(0.1, Math.min(1, (metering + 160) / 160));
-                  const currentBarIndex = Math.floor((recorderState.durationMillis / 1000));
-                  const isPast = index < currentBarIndex;
-
-                  return (
-                    <View
-                      key={index}
-                      style={[
-                        styles.waveformBar,
-                        {
-                          height: `${normalizedHeight * 100}%`,
-                          backgroundColor: isPast ? colors.textPrimary : colors.textTertiary,
-                        }
-                      ]}
-                    />
-                  );
-                })}
-              </View>
-            </View>
-          ) : (
-            <TextInput
-              style={styles.input}
-              value={cactusSTT.isGenerating ? cleanTranscription(cactusSTT.transcription) : text}
-              onChangeText={setText}
-              placeholder="Ask anything"
-              placeholderTextColor={colors.textTertiary}
-              multiline
-              maxLength={2000}
-              onSubmitEditing={handleSend}
-              blurOnSubmit={false}
-              editable={!cactusSTT.isGenerating}
-            />
-          )}
+          <TextInput
+            style={styles.input}
+            value={isRecording ? streamingTranscription : text}
+            onChangeText={setText}
+            placeholder="Ask anything"
+            placeholderTextColor={colors.textTertiary}
+            multiline
+            maxLength={2000}
+            onSubmitEditing={handleSend}
+            blurOnSubmit={false}
+            editable={!isRecording}
+          />
           <TouchableOpacity
             style={styles.sendStopButton}
-            onPress={recorderState.isRecording ? stopRecording : isGenerating ? onStop : hasText ? handleSend : startRecording}
-            disabled={!recorderState.isRecording && !isGenerating && !hasText && disabled}
+            onPress={isRecording ? stopRecording : isGenerating ? onStop : hasText ? handleSend : startRecording}
+            disabled={!isRecording && !isGenerating && !hasText && disabled}
           >
-            {cactusSTT.isGenerating ? (
-              <ActivityIndicator size="small" color={colors.background} />
-            ) : recorderState.isRecording || isGenerating ? (
+            {isRecording || isGenerating ? (
               <Square size={14} color={colors.background} fill={colors.background} />
             ) : hasText ? (
               <ArrowUp size={20} color={colors.background} />
@@ -290,7 +286,6 @@ export function MessageInput({ onSend, disabled, isGenerating, onStop, supportsV
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
     backgroundColor: colors.background,
   },
   imagesContainer: {
@@ -362,33 +357,5 @@ const styles = StyleSheet.create({
     backgroundColor: colors.textPrimary,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  recordingIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingLeft: spacing.lg,
-    paddingRight: 48,
-    height: 40,
-    flex: 1,
-  },
-  recordingDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: '#ff4444',
-    marginRight: spacing.sm,
-  },
-  waveformContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    height: 24,
-    gap: 2,
-  },
-  waveformBar: {
-    flex: 1,
-    minWidth: 2,
-    borderRadius: 1,
   },
 });

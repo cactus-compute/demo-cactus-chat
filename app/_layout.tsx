@@ -8,6 +8,10 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { CactusLMProvider } from '../contexts/CactusLMContext';
 import { CactusSTTProvider } from '../contexts/CactusSTTContext';
 import { colors, typography } from '../constants/theme';
+import { CactusConfig } from 'cactus-react-native';
+
+CactusConfig.cactusProKey = '...';
+
 
 export default function RootLayout() {
   return (

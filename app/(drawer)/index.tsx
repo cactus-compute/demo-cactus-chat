@@ -20,6 +20,7 @@ import { useSettingsStore } from '../../store/settingsStore';
 import { useCactusLM } from '../../contexts/CactusLMContext';
 import { colors, spacing, typography, borderRadius } from '../../constants/theme';
 import { saveImageToDocuments } from '../../utils/imageHelpers';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function ChatScreen() {
   const navigation = useNavigation();
@@ -171,7 +172,7 @@ export default function ChatScreen() {
   }, [cactusLM.isGenerating, cactusLM.completion, addMessage]);
 
   useEffect(() => {
-      flatListRef.current?.scrollToEnd();
+    flatListRef.current?.scrollToEnd();
   }, []);
 
   const displayMessages: MessageWithMetrics[] =
@@ -180,51 +181,53 @@ export default function ChatScreen() {
       : currentMessages;
 
   return (
-    <KeyboardAvoidingView
-      behavior="padding"
-      keyboardVerticalOffset={80}
-      style={styles.container}
-    >
-      {cactusLM.error && (
-        <View style={styles.errorBanner}>
-          <Text style={styles.errorText}>{cactusLM.error}</Text>
-        </View>
-      )}
+    <SafeAreaView style={styles.container}>
+      <KeyboardAvoidingView
+        behavior="padding"
+        keyboardVerticalOffset={110}
+        style={styles.container}
+      >
+        {cactusLM.error && (
+          <View style={styles.errorBanner}>
+            <Text style={styles.errorText}>{cactusLM.error}</Text>
+          </View>
+        )}
 
-      {!selectedModelSlug ? (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>Welcome to Cactus Chat</Text>
-          <Text style={styles.emptySubtext}>
-            Get started by selecting a model
-          </Text>
-          <TouchableOpacity
-            style={styles.settingsButton}
-            onPress={() => router.push('/settings')}
-          >
-            <Settings size={20} color={colors.background} />
-            <Text style={styles.settingsButtonText}>Go to Settings</Text>
-          </TouchableOpacity>
-        </View>
-      ) :
-        <FlatList
-          ref={flatListRef}
-          data={displayMessages}
-          keyExtractor={(_, index) => `message-${index}`}
-          renderItem={({ item }) => <ChatBubble message={item} />}
-          contentContainerStyle={styles.messageList}
-        />
-      }
+        {!selectedModelSlug ? (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>Welcome to Cactus Chat</Text>
+            <Text style={styles.emptySubtext}>
+              Get started by selecting a model
+            </Text>
+            <TouchableOpacity
+              style={styles.settingsButton}
+              onPress={() => router.push('/settings')}
+            >
+              <Settings size={20} color={colors.background} />
+              <Text style={styles.settingsButtonText}>Go to Settings</Text>
+            </TouchableOpacity>
+          </View>
+        ) :
+          <FlatList
+            ref={flatListRef}
+            data={displayMessages}
+            keyExtractor={(_, index) => `message-${index}`}
+            renderItem={({ item }) => <ChatBubble message={item} />}
+            contentContainerStyle={styles.messageList}
+          />
+        }
 
-      {selectedModelSlug && (
-        <MessageInput
-          onSend={handleSend}
-          disabled={cactusLM.isGenerating}
-          isGenerating={cactusLM.isGenerating}
-          onStop={() => cactusLM.stop()}
-          supportsVision={currentModelSupportsVision}
-        />
-      )}
-    </KeyboardAvoidingView>
+        {selectedModelSlug && (
+          <MessageInput
+            onSend={handleSend}
+            disabled={cactusLM.isGenerating}
+            isGenerating={cactusLM.isGenerating}
+            onStop={() => cactusLM.stop()}
+            supportsVision={currentModelSupportsVision}
+          />
+        )}
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
