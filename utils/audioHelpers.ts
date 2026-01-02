@@ -2,11 +2,10 @@ import { File } from 'expo-file-system';
 
 export async function convertPCMToWAV(
   inputFilePath: string,
-  outputFilePath: string,
   sampleRate: number = 16000,
   numChannels: number = 1,
   bitsPerSample: number = 16
-): Promise<void> {
+): Promise<number[]> {
   // Read raw PCM data as bytes directly
   const inputFile = new File(inputFilePath);
   const pcmBytes = await inputFile.bytes();
@@ -51,7 +50,6 @@ export async function convertPCMToWAV(
   wavBytes.set(header, 0);
   wavBytes.set(pcmBytes, 44);
 
-  // Write final WAV file
-  const outputFile = new File(outputFilePath);
-  outputFile.write(wavBytes);
+  // Convert to number array
+  return Array.from(wavBytes);
 }

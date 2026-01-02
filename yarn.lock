@@ -2684,10 +2684,10 @@ bytes@3.1.2:
   resolved "https://registry.yarnpkg.com/bytes/-/bytes-3.1.2.tgz#8b0beeb98605adf1b128fa4386403c009e0221a5"
   integrity sha512-/Nf7TyzTx6S3yRJObOAV7956r8cr2+Oj8AC5dt8wSP3BQAoeX58NoHyCU8P8zGkNXStjTSi6fzO6F0pBdcYbEg==
 
-cactus-react-native@^1.2.1:
-  version "1.2.1"
-  resolved "https://registry.yarnpkg.com/cactus-react-native/-/cactus-react-native-1.2.1.tgz#fa408844be6508e7b35e35f3d18c51438aaf4b98"
-  integrity sha512-VFwrQ+5MynPGW315ojuQFcWDPNaJ0ynIowahvJsWNVMMoned9k62BBUYDqGVVXCaAing5AJhAE1/b7mlrE9u/w==
+cactus-react-native@^1.4.0:
+  version "1.4.0"
+  resolved "https://registry.yarnpkg.com/cactus-react-native/-/cactus-react-native-1.4.0.tgz#30dfe71be7365cb4ddea8dccf8777d20aa8c31cd"
+  integrity sha512-cTFdIrReE2Old+jUguB5/3i8O1al48hNPysVnXeXRUX+Ok7Dnci+cvuFhKXFmkeKNP5xafwu9A7X6z7DkXVc4Q==
 
 call-bind-apply-helpers@^1.0.0, call-bind-apply-helpers@^1.0.1, call-bind-apply-helpers@^1.0.2:
   version "1.0.2"

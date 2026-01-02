@@ -81,13 +81,11 @@ export function MessageInput({ onSend, disabled, isGenerating, onStop, supportsV
     if (!uri) return;
 
     try {
-      const audioFilePath = `${Paths.cache.uri}recording_${Date.now()}.wav`;
-
       // Convert raw PCM to proper WAV format with RIFF headers
-      await convertPCMToWAV(uri, audioFilePath, 16000, 1, 16);
+      const audio = await convertPCMToWAV(uri, 16000, 1, 16);
 
       try {
-        const result = await cactusSTT.transcribe({ audioFilePath });
+        const result = await cactusSTT.transcribe({ audio });
         if (result.response) {
           const cleanedResponse = cleanTranscription(result.response);
           setText((prev) => (prev ? prev + ' ' : '') + cleanedResponse);
@@ -96,7 +94,6 @@ export function MessageInput({ onSend, disabled, isGenerating, onStop, supportsV
         Alert.alert('Transcription Error', `Failed to transcribe audio: ${transcribeError}`);
       } finally {
         await cactusSTT.reset();
-        new File(audioFilePath).delete();
       }
     } catch (error) {
       Alert.alert('Error', `Failed to process recording: ${error}`);
